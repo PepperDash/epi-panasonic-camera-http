@@ -18,6 +18,9 @@ namespace PanasonicCameraEpi
             camera.CameraIsOffFeedback.LinkInputSig(trilist.BooleanInput[joinMap.PowerOff]);
             camera.CameraIsOffFeedback.LinkComplementInputSig(trilist.BooleanInput[joinMap.PowerOn]);
             camera.IsOnlineFeedback.LinkInputSig(trilist.BooleanInput[joinMap.IsOnline]);
+            camera.PanSpeedFeedback.LinkInputSig(trilist.UShortInput[joinMap.PanSpeed]);
+            camera.TiltSpeedFeedback.LinkInputSig(trilist.UShortInput[joinMap.TiltSpeed]);
+            camera.ZoomSpeedFeedback.LinkInputSig(trilist.UShortInput[joinMap.ZoomSpeed]);
 
             foreach (var preset in camera.PresetNamesFeedbacks)
             {

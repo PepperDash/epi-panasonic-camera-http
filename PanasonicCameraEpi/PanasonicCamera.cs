@@ -24,6 +24,9 @@ namespace PanasonicCameraEpi
         public StringFeedback NameFeedback { get; private set; }
         public StringFeedback ComsFeedback { get; private set; }
         public BoolFeedback IsOnlineFeedback { get { return monitor.IsOnlineFeedback; } }
+        public IntFeedback PanSpeedFeedback { get; private set; }
+        public IntFeedback ZoomSpeedFeedback { get; private set; }
+        public IntFeedback TiltSpeedFeedback { get; private set; }
 
         public static void LoadPlugin()
         {
@@ -81,6 +84,14 @@ namespace PanasonicCameraEpi
             NumberOfPresetsFeedback = new IntFeedback(() => Presets.Count());
             NumberOfPresetsFeedback.FireUpdate();
 
+            PanSpeedFeedback = new IntFeedback(() => PanSpeed);
+            TiltSpeedFeedback = new IntFeedback(() => TiltSpeed);
+            ZoomSpeedFeedback = new IntFeedback(() => ZoomSpeed);
+
+            PanSpeedFeedback.FireUpdate();
+            TiltSpeedFeedback.FireUpdate();
+            ZoomSpeedFeedback.FireUpdate();
+
             Presets.ToList().ForEach(preset =>
                 {
                     PresetNamesFeedbacks.Add((uint)preset.Id, new StringFeedback(() => preset.Name));
@@ -94,19 +105,31 @@ namespace PanasonicCameraEpi
         public int PanSpeed
         {
             get { return cmd.PanSpeed; }
-            set { cmd.PanSpeed = value; }
+            set 
+            { 
+                cmd.PanSpeed = value;
+                PanSpeedFeedback.FireUpdate();
+            }
         }
 
         public int ZoomSpeed 
         {
             get { return cmd.ZoomSpeed; }
-            set { cmd.ZoomSpeed = value; }
+            set 
+            { 
+                cmd.ZoomSpeed = value;
+                ZoomSpeedFeedback.FireUpdate();
+            }
         }
 
         public int TiltSpeed
         {
             get { return cmd.TiltSpeed; }
-            set { cmd.TiltSpeed = value; }
+            set 
+            { 
+                cmd.TiltSpeed = value;
+                TiltSpeedFeedback.FireUpdate();
+            }
         }
 
         #region IHasCameraPtzControl Members
