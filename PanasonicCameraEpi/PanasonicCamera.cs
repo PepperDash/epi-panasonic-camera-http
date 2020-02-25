@@ -25,6 +25,14 @@ namespace PanasonicCameraEpi
         public StringFeedback ComsFeedback { get; private set; }
         public BoolFeedback IsOnlineFeedback { get { return monitor.IsOnlineFeedback; } }
 
+        public static void LoadPlugin()
+        {
+            DeviceFactory.AddFactoryForType("panasonicHttpCamera", config =>
+                {
+                    return new PanasonicCamera(config);
+                });
+        }
+
         public PanasonicCamera(DeviceConfig config)
             : base(config.Key, config.Name)
         {
