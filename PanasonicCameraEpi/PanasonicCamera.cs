@@ -31,9 +31,12 @@ namespace PanasonicCameraEpi
             Capabilities = eCameraCapabilities.Pan | eCameraCapabilities.Tilt | eCameraCapabilities.Zoom | eCameraCapabilities.Focus; 
             var cameraConfig = PanasonicCameraPropsConfig.FromDeviceConfig(config);
 
-            client = new GenericHttpClient(string.Format("{0}-client", config.Key), "", cameraConfig.IpAddress);
-            monitor = new GenericCommunicationMonitor(this, client,
-                new CommunicationMonitorConfig() { PollInterval = 10000, TimeToWarning = 60000, TimeToError = 120000, PollString = "O" });
+            client = new GenericHttpClient(string.Format("{0}-client", config.Key), "", cameraConfig.Control.TcpSshProperties.Address);
+
+            var monitorConfig = (cameraConfig.CommunicationMonitor != null) ? cameraConfig.CommunicationMonitor : 
+                new CommunicationMonitorConfig() { PollInterval = 10000, TimeToWarning = 60000, TimeToError = 120000, PollString = "O" };
+
+            monitor = new GenericCommunicationMonitor(this, client, monitorConfig);
 
             cmd = new PanasonicCmdBuilder(25, 25, 25);
             responseHandler = new PanasonicResponseHandler(client);

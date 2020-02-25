@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Crestron.SimplSharp;
+using PepperDash.Core;
+using PepperDash.Essentials.Core;
 using PepperDash.Essentials.Core.Config;
 using Newtonsoft.Json;
 
@@ -15,7 +17,13 @@ namespace PanasonicCameraEpi
             return JsonConvert.DeserializeObject<PanasonicCameraPropsConfig>(config.Properties.ToString());
         }
 
-        public string IpAddress { get; set; }
+        [JsonProperty("control")]
+        public ControlPropertiesConfig Control { get; set; }
+
+        [JsonProperty("communicationMonitor")]
+        public CommunicationMonitorConfig CommunicationMonitor { get; set; }
+
+        [JsonProperty("presets")]
         public List<PanasonicCameraPreset> Presets { get; set; }
     }
 }

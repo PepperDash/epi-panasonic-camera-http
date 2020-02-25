@@ -23,15 +23,32 @@ namespace PanasonicCameraEpi
 
         void HandleResponseRecived(object sender, GenericHttpClientEventArgs e)
         {          
-            if (e.Error != Crestron.SimplSharp.Net.Http.HTTP_CALLBACK_ERROR.COMPLETED) return;
-
             comsRx = e.ResponseText;
+            ProcessComs(comsRx);
             ComsFb.FireUpdate();
         }
 
         void ProcessComs(string coms)
         {
+            if (coms.Equals("200 OK \"p1\"")) OnCameraPowerdOn();
+            else if (coms.Equals("200 OK \"p0\"")) OnCameraPowerdOff();
+            else return;
+        }
 
+        void OnCameraPowerdOn()
+        {
+            var handler = CameraPoweredOn;
+            if (handler == null) return;
+
+            handler.Invoke(this, EventArgs.Empty);
+        }
+
+        void OnCameraPowerdOff()
+        {
+            var handler = CameraPoweredOff;
+            if (handler == null) return;
+
+            handler.Invoke(this, EventArgs.Empty);
         }
     }
 }
