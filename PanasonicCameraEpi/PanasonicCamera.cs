@@ -7,13 +7,14 @@ using PepperDash.Essentials.Bridges;
 using PepperDash.Essentials.Core.Config;
 using PepperDash.Essentials.Core;
 using PepperDash.Essentials.Devices.Common.Cameras;
+using PepperDash.Core;
 
 namespace PanasonicCameraEpi
 {
     public class PanasonicCamera : CameraBase, IHasCameraPtzControl, IHasCameraOff, ICommunicationMonitor, IBridge
     {
         readonly StatusMonitorBase monitor;
-        readonly GenericHttpClient client;
+		readonly IBasicCommunication client;
         readonly PanasonicCmdBuilder cmd;
         readonly PanasonicResponseHandler responseHandler;
 
@@ -42,15 +43,28 @@ namespace PanasonicCameraEpi
             Capabilities = eCameraCapabilities.Pan | eCameraCapabilities.Tilt | eCameraCapabilities.Zoom | eCameraCapabilities.Focus; 
             var cameraConfig = PanasonicCameraPropsConfig.FromDeviceConfig(config);
 
-            client = new GenericHttpClient(string.Format("{0}-client", config.Key), "", cameraConfig.Control.TcpSshProperties.Address);
+			responseHandler = new PanasonicResponseHandler();
 
+			if (cameraConfig.Control.Method.ToString().ToLower() == "http")
+			{
+				client = new GenericHttpClient(string.Format("{0}-client", config.Key), "", cameraConfig.Control.TcpSshProperties.Address);
+				(client as GenericHttpClient).ResponseRecived += responseHandler.HandleResponseRecived;
+			}
+			else
+			{
+				client = CommFactory.CreateCommForDevice(config);
+				client.TextReceived += responseHandler.HandleResponseRecived;
+
+			}
+
+			
             var monitorConfig = (cameraConfig.CommunicationMonitor != null) ? cameraConfig.CommunicationMonitor : 
                 new CommunicationMonitorConfig() { PollInterval = 10000, TimeToWarning = 60000, TimeToError = 120000, PollString = "O" };
 
             monitor = new GenericCommunicationMonitor(this, client, monitorConfig);
 
             cmd = new PanasonicCmdBuilder(25, 25, 25);
-            responseHandler = new PanasonicResponseHandler(client);
+            
 
             Presets = cameraConfig.Presets.OrderBy(x => x.Id);
             PresetNamesFeedbacks = new Dictionary<uint, StringFeedback>();

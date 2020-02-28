@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using Crestron.SimplSharp;
 using PepperDash.Essentials.Core;
+using PepperDash.Core;
 
 namespace PanasonicCameraEpi
 {
@@ -15,19 +16,23 @@ namespace PanasonicCameraEpi
         public event EventHandler CameraPoweredOn;
         public event EventHandler CameraPoweredOff;
 
-        public PanasonicResponseHandler(GenericHttpClient client)
+        public PanasonicResponseHandler()
         {
-            client.ResponseRecived += HandleResponseRecived;
-            ComsFb = new StringFeedback(() => comsRx ?? string.Empty);
+			ComsFb = new StringFeedback(() => comsRx ?? string.Empty);
         }
 
-        void HandleResponseRecived(object sender, GenericHttpClientEventArgs e)
-        {          
-            comsRx = e.ResponseText;
-            ProcessComs(comsRx);
-            ComsFb.FireUpdate();
+        public void HandleResponseRecived(object sender, GenericCommMethodReceiveTextArgs e)
+        {
+			Debug.Console(2, "HandleResponseRecived Response:{0}\r", e.Text);
         }
 
+		public void HandleResponseRecived(object sender, GenericHttpClientEventArgs e)
+		{
+			Debug.Console(2, "Http HandleResponseRecived: {0} Response:{1}, Error: {2}\r", e.RequestPath, e.ResponseText, e.Error);
+			comsRx = e.ResponseText;
+			ProcessComs(comsRx);
+			ComsFb.FireUpdate();
+		}
         void ProcessComs(string coms)
         {
             if (coms.Equals("200 OK \"p1\"")) OnCameraPowerdOn();
