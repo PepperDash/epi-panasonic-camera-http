@@ -1,12 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using Crestron.SimplSharp;
+﻿using System.Linq;
 using Crestron.SimplSharp.Reflection;
 
 using PepperDash.Essentials.Core;
-using PepperDash.Essentials.Bridges;
 
 namespace PanasonicCameraEpi
 {
@@ -39,7 +34,7 @@ namespace PanasonicCameraEpi
         public uint DeviceComs { get; private set; }
 
 
-        PanasonicCameraJoinMap()
+        public PanasonicCameraJoinMap()
         {
             TiltUp = 1;
             TiltDown = 2;
@@ -63,12 +58,6 @@ namespace PanasonicCameraEpi
             DeviceName = 1;
             PresetNameStart = 11;
             DeviceComs = 50;
-        }
-
-        public PanasonicCameraJoinMap(uint joinStart)
-            : this()
-        {
-            OffsetJoinNumbers(joinStart);
         }
 
         public override void OffsetJoinNumbers(uint joinStart)
