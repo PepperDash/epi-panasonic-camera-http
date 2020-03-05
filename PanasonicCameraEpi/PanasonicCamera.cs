@@ -1,8 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using Crestron.SimplSharp;
 using PepperDash.Essentials.Bridges;
 using PepperDash.Essentials.Core.Config;
 using PepperDash.Essentials.Core;
@@ -13,28 +10,25 @@ namespace PanasonicCameraEpi
 {
     public class PanasonicCamera : CameraBase, IHasCameraPtzControl, IHasCameraOff, ICommunicationMonitor, IBridge
     {
-        readonly StatusMonitorBase monitor;
-		readonly IBasicCommunication client;
-        readonly PanasonicCmdBuilder cmd;
-        readonly PanasonicResponseHandler responseHandler;
+        private readonly StatusMonitorBase _monitor;
+		private readonly IBasicCommunication _client;
+        private readonly PanasonicCmdBuilder _cmd;
+        private readonly PanasonicResponseHandler _responseHandler;
 
         public bool IsPoweredOn { get; private set; }
         public IEnumerable<PanasonicCameraPreset> Presets { get; private set; }
         public Dictionary<uint, StringFeedback> PresetNamesFeedbacks { get; private set; }
         public IntFeedback NumberOfPresetsFeedback { get; private set; }
         public StringFeedback NameFeedback { get; private set; }
-        public StringFeedback ComsFeedback { get; private set; }
-        public BoolFeedback IsOnlineFeedback { get { return monitor.IsOnlineFeedback; } }
+        public StringFeedback ComsFeedback { get; set; }
+        public BoolFeedback IsOnlineFeedback { get { return _monitor.IsOnlineFeedback; } }
         public IntFeedback PanSpeedFeedback { get; private set; }
         public IntFeedback ZoomSpeedFeedback { get; private set; }
         public IntFeedback TiltSpeedFeedback { get; private set; }
 
         public static void LoadPlugin()
         {
-            DeviceFactory.AddFactoryForType("panasonicHttpCamera", config =>
-                {
-                    return new PanasonicCamera(config);
-                });
+            DeviceFactory.AddFactoryForType("panasonicHttpCamera", config => new PanasonicCamera(config));
         }
 
         public PanasonicCamera(DeviceConfig config)
@@ -43,27 +37,33 @@ namespace PanasonicCameraEpi
             Capabilities = eCameraCapabilities.Pan | eCameraCapabilities.Tilt | eCameraCapabilities.Zoom | eCameraCapabilities.Focus; 
             var cameraConfig = PanasonicCameraPropsConfig.FromDeviceConfig(config);
 
-			responseHandler = new PanasonicResponseHandler();
+			_responseHandler = new PanasonicResponseHandler();
 
 			if (cameraConfig.Control.Method.ToString().ToLower() == "http")
 			{
-				client = new GenericHttpClient(string.Format("{0}-client", config.Key), "", cameraConfig.Control.TcpSshProperties.Address);
-				(client as GenericHttpClient).ResponseRecived += responseHandler.HandleResponseRecived;
+				_client = new GenericHttpClient(string.Format("{0}-client", config.Key), "", cameraConfig.Control.TcpSshProperties.Address);
+				(_client as GenericHttpClient).ResponseRecived += _responseHandler.HandleResponseRecived;
 			}
 			else
 			{
-				client = CommFactory.CreateCommForDevice(config);
-				client.TextReceived += responseHandler.HandleResponseRecived;
+				_client = CommFactory.CreateCommForDevice(config);
+				_client.TextReceived += _responseHandler.HandleResponseRecived;
 
 			}
 
-			
-            var monitorConfig = (cameraConfig.CommunicationMonitor != null) ? cameraConfig.CommunicationMonitor : 
-                new CommunicationMonitorConfig() { PollInterval = 10000, TimeToWarning = 60000, TimeToError = 120000, PollString = "O" };
 
-            monitor = new GenericCommunicationMonitor(this, client, monitorConfig);
+            var monitorConfig = cameraConfig.CommunicationMonitor ??
+                                new CommunicationMonitorConfig
+                                {
+                                    PollInterval = 10000,
+                                    TimeToWarning = 60000,
+                                    TimeToError = 120000,
+                                    PollString = "O"
+                                };
 
-            cmd = new PanasonicCmdBuilder(25, 25, 25);
+            _monitor = new GenericCommunicationMonitor(this, _client, monitorConfig);
+
+            _cmd = new PanasonicCmdBuilder(25, 25, 25);
             
 
             Presets = cameraConfig.Presets.OrderBy(x => x.Id);
@@ -73,19 +73,19 @@ namespace PanasonicCameraEpi
         public override bool CustomActivate()
         {
             SetupFeedbacks();
-            responseHandler.CameraPoweredOn += (sender, args) =>
+            _responseHandler.CameraPoweredOn += (sender, args) =>
                 {
                     IsPoweredOn = true;
                     CameraIsOffFeedback.FireUpdate();
                 };
 
-            responseHandler.CameraPoweredOff += (sender, args) =>
+            _responseHandler.CameraPoweredOff += (sender, args) =>
                 {
                     IsPoweredOn = false;
                     CameraIsOffFeedback.FireUpdate();
                 };
 
-            monitor.Start();
+            _monitor.Start();
 
             return true;
         }
@@ -118,30 +118,30 @@ namespace PanasonicCameraEpi
 
         public int PanSpeed
         {
-            get { return cmd.PanSpeed; }
+            get { return _cmd.PanSpeed; }
             set 
             { 
-                cmd.PanSpeed = value;
+                _cmd.PanSpeed = value;
                 PanSpeedFeedback.FireUpdate();
             }
         }
 
         public int ZoomSpeed 
         {
-            get { return cmd.ZoomSpeed; }
+            get { return _cmd.ZoomSpeed; }
             set 
             { 
-                cmd.ZoomSpeed = value;
+                _cmd.ZoomSpeed = value;
                 ZoomSpeedFeedback.FireUpdate();
             }
         }
 
         public int TiltSpeed
         {
-            get { return cmd.TiltSpeed; }
+            get { return _cmd.TiltSpeed; }
             set 
             { 
-                cmd.TiltSpeed = value;
+                _cmd.TiltSpeed = value;
                 TiltSpeedFeedback.FireUpdate();
             }
         }
@@ -150,12 +150,12 @@ namespace PanasonicCameraEpi
 
         public void PositionHome()
         {
-            client.SendText(cmd.HomeCommand);
+            _client.SendText(_cmd.HomeCommand);
         }
 
         public void PositionPrivacy()
         {
-            client.SendText(cmd.PrivacyCommand);
+            _client.SendText(_cmd.PrivacyCommand);
         }
 
         #endregion
@@ -164,17 +164,17 @@ namespace PanasonicCameraEpi
 
         public void PanLeft()
         {
-            client.SendText(cmd.PanLeftCommand);
+            _client.SendText(_cmd.PanLeftCommand);
         }
 
         public void PanRight()
         {
-            client.SendText(cmd.PanRightCommand);
+            _client.SendText(_cmd.PanRightCommand);
         }
 
         public void PanStop()
         {
-            client.SendText(cmd.PanStopCommand);
+            _client.SendText(_cmd.PanStopCommand);
         }
 
         #endregion
@@ -183,17 +183,17 @@ namespace PanasonicCameraEpi
 
         public void TiltDown()
         {
-            client.SendText(cmd.TiltUpCommand);
+            _client.SendText(_cmd.TiltUpCommand);
         }
 
         public void TiltUp()
         {
-            client.SendText(cmd.TiltUpCommand);
+            _client.SendText(_cmd.TiltUpCommand);
         }
 
         public void TiltStop()
         {
-            client.SendText(cmd.TiltStopCommand);
+            _client.SendText(_cmd.TiltStopCommand);
         }    
 
         #endregion
@@ -203,12 +203,12 @@ namespace PanasonicCameraEpi
 
         public void CameraOn()
         {
-            client.SendText(cmd.PowerOnCommand);
+            _client.SendText(_cmd.PowerOnCommand);
         }
 
         public void CameraOff()
         {
-            client.SendText(cmd.PowerOffCommand);
+            _client.SendText(_cmd.PowerOffCommand);
         }
 
         #endregion
@@ -217,34 +217,34 @@ namespace PanasonicCameraEpi
 
         public void ZoomIn()
         {
-            client.SendText(cmd.ZoomInCommand);
+            _client.SendText(_cmd.ZoomInCommand);
         }
 
         public void ZoomOut()
         {
-            client.SendText(cmd.ZoomOutCommand);
+            _client.SendText(_cmd.ZoomOutCommand);
         }
 
         public void ZoomStop()
         {
-            client.SendText(cmd.ZoomStopCommand);
+            _client.SendText(_cmd.ZoomStopCommand);
         }
 
         #endregion
 
         public void SendCustomCommand(string cmd)
         {
-            client.SendText(PanasonicCmdBuilder.BuildCustomCommand(cmd));
+            _client.SendText(PanasonicCmdBuilder.BuildCustomCommand(cmd));
         }
 
         public void RecallPreset(int preset)
         {
-            client.SendText(cmd.PresetRecallCommand(preset));
+            _client.SendText(_cmd.PresetRecallCommand(preset));
         }
 
         public void SavePreset(int preset)
         {
-            client.SendText(cmd.PresetSaveCommand(preset));
+            _client.SendText(_cmd.PresetSaveCommand(preset));
         }
 
         #region IBridge Members
@@ -260,7 +260,7 @@ namespace PanasonicCameraEpi
 
         public StatusMonitorBase CommunicationMonitor
         {
-            get { return monitor; }
+            get { return _monitor; }
         }
 
         #endregion

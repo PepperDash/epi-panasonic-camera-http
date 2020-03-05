@@ -1,8 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
-using Crestron.SimplSharp;
 
 namespace PanasonicCameraEpi
 {
@@ -41,39 +38,39 @@ namespace PanasonicCameraEpi
             TiltSpeed = tiltSpeed;
         }
 
-        private int panSpeed;
+        private int _panSpeed;
         public int PanSpeed
         {
-            get { return panSpeed; }
+            get { return _panSpeed; }
             set
             {
-                panSpeed = value.ScaleForCameraControls();
-                PanLeftCommand = BuildCmd(String.Format("P{0}", 50 - panSpeed));
-                PanRightCommand = BuildCmd(String.Format("P{0}", panSpeed + 50));
+                _panSpeed = value.ScaleForCameraControls();
+                PanLeftCommand = BuildCmd(String.Format("P{0}", 50 - _panSpeed));
+                PanRightCommand = BuildCmd(String.Format("P{0}", _panSpeed + 50));
             }
         }
 
-        private int tiltSpeed;
+        private int _tiltSpeed;
         public int TiltSpeed
         {
-            get { return tiltSpeed; }
+            get { return _tiltSpeed; }
             set
             {
-                tiltSpeed = value.ScaleForCameraControls();
-                TiltDownCommand = BuildCmd(String.Format("T{0}", 50 - tiltSpeed));
-                TiltUpCommand = BuildCmd(String.Format("T{0}", tiltSpeed + 50));
+                _tiltSpeed = value.ScaleForCameraControls();
+                TiltDownCommand = BuildCmd(String.Format("T{0}", 50 - _tiltSpeed));
+                TiltUpCommand = BuildCmd(String.Format("T{0}", _tiltSpeed + 50));
             }
         }
 
-        private int zoomSpeed;
+        private int _zoomSpeed;
         public int ZoomSpeed
         {
-            get { return zoomSpeed; }
+            get { return _zoomSpeed; }
             set
             {
-                zoomSpeed = value.ScaleForCameraControls();
-                ZoomOutCommand = BuildCmd(String.Format("Z{0}", 50 - zoomSpeed));
-                ZoomInCommand = BuildCmd(String.Format("Z{0}", zoomSpeed + 50));
+                _zoomSpeed = value.ScaleForCameraControls();
+                ZoomOutCommand = BuildCmd(String.Format("Z{0}", 50 - _zoomSpeed));
+                ZoomInCommand = BuildCmd(String.Format("Z{0}", _zoomSpeed + 50));
             }
         }
 

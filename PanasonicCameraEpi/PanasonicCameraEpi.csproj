@@ -99,7 +99,6 @@
     <Compile Include="PanasonicCameraPreset.cs" />
     <Compile Include="PanasonicCameraPropsConfig.cs" />
     <Compile Include="PanasonicCmdBuilder.cs" />
-    <Compile Include="PanasonicResponseHandlerHttp.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <None Include="Properties\ControlSystem.cfg" />
   </ItemGroup>

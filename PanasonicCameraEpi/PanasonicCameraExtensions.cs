@@ -1,8 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using Crestron.SimplSharp;
 
 namespace PanasonicCameraEpi
 {
@@ -10,7 +6,7 @@ namespace PanasonicCameraEpi
     {
         static int Scale(this int input, int inMin, int inMax, int outMin, int outMax)
         {
-            int inputRange = inMax - inMin;
+            var inputRange = inMax - inMin;
 
             if (inputRange <= 0)
             {
@@ -26,8 +22,8 @@ namespace PanasonicCameraEpi
 
         public static int ScaleForCameraControls(this int input)
         {
-            var maxValue = 49;
-            var minValue = 1;
+            const int maxValue = 49;
+            const int minValue = 1;
 
             return input.Scale(ushort.MaxValue, ushort.MaxValue, minValue, maxValue);
         }

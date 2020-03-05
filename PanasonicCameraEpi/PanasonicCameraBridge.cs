@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using Crestron.SimplSharp;
-using PepperDash.Essentials.Core;
+﻿using PepperDash.Essentials.Core;
 
 namespace PanasonicCameraEpi
 {
@@ -11,7 +6,9 @@ namespace PanasonicCameraEpi
     {
         public static void LinkToApiExt(this PanasonicCamera camera, Crestron.SimplSharpPro.DeviceSupport.BasicTriList trilist, uint joinStart, string joinMapKey)
         {
-            var joinMap = new PanasonicCameraJoinMap(joinStart);
+            var joinMap = new PanasonicCameraJoinMap();
+
+            joinMap.OffsetJoinNumbers(joinStart);
 
             camera.NameFeedback.LinkInputSig(trilist.StringInput[joinMap.DeviceName]);
             camera.NumberOfPresetsFeedback.LinkInputSig(trilist.UShortInput[joinMap.NumberOfPresets]);
@@ -36,7 +33,7 @@ namespace PanasonicCameraEpi
             }
 
             camera.ComsFeedback.LinkInputSig(trilist.StringInput[joinMap.DeviceComs]);
-            trilist.SetStringSigAction(joinMap.DeviceComs, cmd => camera.SendCustomCommand(cmd));
+            trilist.SetStringSigAction(joinMap.DeviceComs, camera.SendCustomCommand);
 
             trilist.SetBoolSigAction(joinMap.PanLeft, sig =>
                 {
