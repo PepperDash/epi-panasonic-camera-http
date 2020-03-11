@@ -19,20 +19,7 @@ namespace PanasonicCameraEpi
             camera.TiltSpeedFeedback.LinkInputSig(trilist.UShortInput[joinMap.TiltSpeed]);
             camera.ZoomSpeedFeedback.LinkInputSig(trilist.UShortInput[joinMap.ZoomSpeed]);
 
-            foreach (var preset in camera.PresetNamesFeedbacks)
-            {
-                var presetNumber = preset.Key;
-                var nameJoin = joinMap.PresetNameStart + presetNumber - 1;
-                preset.Value.LinkInputSig(trilist.StringInput[nameJoin]);
-
-                var recallJoin = joinMap.PresetRecallStart + presetNumber - 1;
-                var saveJoin = joinMap.PresetSaveStart + presetNumber - 1;
-                trilist.SetSigTrueAction(recallJoin, () => camera.RecallPreset((int)presetNumber));
-                trilist.SetSigHeldAction(recallJoin, 5000, () => camera.SavePreset((int)presetNumber));
-                trilist.SetSigTrueAction(saveJoin, () => camera.SavePreset((int)presetNumber));
-            }
-
-            camera.ComsFeedback.LinkInputSig(trilist.StringInput[joinMap.DeviceComs]);
+            //camera.ComsFeedback.LinkInputSig(trilist.StringInput[joinMap.DeviceComs]);
             trilist.SetStringSigAction(joinMap.DeviceComs, camera.SendCustomCommand);
 
             trilist.SetBoolSigAction(joinMap.PanLeft, sig =>
@@ -74,6 +61,19 @@ namespace PanasonicCameraEpi
             trilist.SetUShortSigAction(joinMap.PanSpeed, panSpeed => camera.PanSpeed = panSpeed);
             trilist.SetUShortSigAction(joinMap.ZoomSpeed, zoomSpeed => camera.ZoomSpeed = zoomSpeed);
             trilist.SetUShortSigAction(joinMap.TiltSpeed, tiltSpeed => camera.TiltSpeed = tiltSpeed);
+
+            foreach (var preset in camera.PresetNamesFeedbacks)
+            {
+                var presetNumber = preset.Key;
+                var nameJoin = joinMap.PresetNameStart + presetNumber - 1;
+                preset.Value.LinkInputSig(trilist.StringInput[nameJoin]);
+
+                var recallJoin = joinMap.PresetRecallStart + presetNumber - 1;
+                var saveJoin = joinMap.PresetSaveStart + presetNumber - 1;
+                trilist.SetSigTrueAction(recallJoin, () => camera.RecallPreset((int)presetNumber));
+                trilist.SetSigHeldAction(recallJoin, 5000, () => camera.SavePreset((int)presetNumber));
+                trilist.SetSigTrueAction(saveJoin, () => camera.SavePreset((int)presetNumber));
+            }
         }
     }
 }

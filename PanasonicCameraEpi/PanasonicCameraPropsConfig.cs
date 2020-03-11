@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using PepperDash.Core;
+using PepperDash.Core.WebApi.Presets;
 using PepperDash.Essentials.Core;
 using PepperDash.Essentials.Core.Config;
 using Newtonsoft.Json;
@@ -13,8 +14,15 @@ namespace PanasonicCameraEpi
             return JsonConvert.DeserializeObject<PanasonicCameraPropsConfig>(config.Properties.ToString());
         }
 
+        /*
         [JsonProperty("control")]
         public ControlPropertiesConfig Control { get; set; }
+        */
+
+        public PanasonicCameraPropsConfig()
+        {
+            Presets = new List<PanasonicCameraPreset>();
+        }
 
         [JsonProperty("communicationMonitor")]
         public CommunicationMonitorConfig CommunicationMonitor { get; set; }

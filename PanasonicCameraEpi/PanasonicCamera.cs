@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using PepperDash.Essentials.Bridges;
 using PepperDash.Essentials.Core.Config;
@@ -20,7 +21,7 @@ namespace PanasonicCameraEpi
         public Dictionary<uint, StringFeedback> PresetNamesFeedbacks { get; private set; }
         public IntFeedback NumberOfPresetsFeedback { get; private set; }
         public StringFeedback NameFeedback { get; private set; }
-        public StringFeedback ComsFeedback { get; set; }
+        //public StringFeedback ComsFeedback { get; set; }
         public BoolFeedback IsOnlineFeedback { get { return _monitor.IsOnlineFeedback; } }
         public IntFeedback PanSpeedFeedback { get; private set; }
         public IntFeedback ZoomSpeedFeedback { get; private set; }
@@ -28,29 +29,64 @@ namespace PanasonicCameraEpi
 
         public static void LoadPlugin()
         {
-            DeviceFactory.AddFactoryForType("panasonicHttpCamera", config => new PanasonicCamera(config));
+            DeviceFactory.AddFactoryForType("panasonicHttpCamera", BuildDevice);
         }
 
-        public PanasonicCamera(DeviceConfig config)
+        public static PanasonicCamera BuildDevice(DeviceConfig config)
+        {
+            var method = config.Properties["control"].Value<string>("method");
+
+            if (method == null)
+            {
+                Debug.Console(0, Debug.ErrorLogLevel.Warning, "No valid control method found");
+                return null;
+            }
+
+            IBasicCommunication comms;
+
+            if (method.ToLower() == "http")
+            {
+                try
+                {
+                    comms = new GenericHttpClient(string.Format("{0}-httpClient", config.Key), config.Name,
+                        config.Properties["control"]["tcpSshProperties"].Value<string>("address"));
+
+                    DeviceManager.AddDevice(comms);
+                }
+                catch (NullReferenceException)
+                {
+                    Debug.LogError(Debug.ErrorLogLevel.Error, String.Format("Hostname or address not found"));
+                    return null;
+                }
+            }
+            else
+            {
+                comms = CommFactory.CreateCommForDevice(config);
+            }
+
+            return new PanasonicCamera(comms, config);
+        }
+
+        public PanasonicCamera(IBasicCommunication comms, DeviceConfig config)
             : base(config.Key, config.Name)
         {
-            Capabilities = eCameraCapabilities.Pan | eCameraCapabilities.Tilt | eCameraCapabilities.Zoom | eCameraCapabilities.Focus; 
+            Capabilities = eCameraCapabilities.Pan | eCameraCapabilities.Tilt | eCameraCapabilities.Zoom | eCameraCapabilities.Focus;
+
+            _client = comms;
+ 
             var cameraConfig = PanasonicCameraPropsConfig.FromDeviceConfig(config);
 
 			_responseHandler = new PanasonicResponseHandler();
 
-			if (cameraConfig.Control.Method.ToString().ToLower() == "http")
-			{
-				_client = new GenericHttpClient(string.Format("{0}-client", config.Key), "", cameraConfig.Control.TcpSshProperties.Address);
-				(_client as GenericHttpClient).ResponseRecived += _responseHandler.HandleResponseRecived;
+            var tempClient = _client as GenericHttpClient;
+
+            if(tempClient == null) {
+                _client.TextReceived += _responseHandler.HandleResponseRecived;
 			}
 			else
-			{
-				_client = CommFactory.CreateCommForDevice(config);
-				_client.TextReceived += _responseHandler.HandleResponseRecived;
-
-			}
-
+            {
+                tempClient.ResponseRecived += _responseHandler.HandleResponseRecived;
+            }
 
             var monitorConfig = cameraConfig.CommunicationMonitor ??
                                 new CommunicationMonitorConfig

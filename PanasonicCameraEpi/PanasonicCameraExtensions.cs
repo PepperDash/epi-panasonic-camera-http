@@ -25,7 +25,7 @@ namespace PanasonicCameraEpi
             const int maxValue = 49;
             const int minValue = 1;
 
-            return input.Scale(ushort.MaxValue, ushort.MaxValue, minValue, maxValue);
+            return input.Scale(ushort.MinValue, ushort.MaxValue, minValue, maxValue);
         }
     }
 }
