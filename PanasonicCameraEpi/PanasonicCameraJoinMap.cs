@@ -17,6 +17,7 @@ namespace PanasonicCameraEpi
         public uint PowerOn { get; private set; }
         public uint PowerOff { get; private set; }
         public uint IsOnline { get; private set; }
+		public uint Home { get; private set; }
         public uint PresetRecallStart { get; private set; }
         public uint PresetSaveStart { get; private set; }
         public uint PrivacyOn { get; private set; }
@@ -45,6 +46,7 @@ namespace PanasonicCameraEpi
             PowerOn = 7;
             PowerOff = 8;
             IsOnline = 9;
+	        Home = 10;
             PresetRecallStart = 11;
             PresetSaveStart = 31;
             PrivacyOn = 48;

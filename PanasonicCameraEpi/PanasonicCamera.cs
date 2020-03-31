@@ -167,7 +167,7 @@ namespace PanasonicCameraEpi
             get { return _cmd.ZoomSpeed; }
             set 
             { 
-                _cmd.ZoomSpeed = value;
+                _cmd.ZoomSpeed = (ZoomSpeed <= 0 || ZoomSpeed >= 50 ? 25 : value);
                 ZoomSpeedFeedback.FireUpdate();
             }
         }
@@ -219,7 +219,7 @@ namespace PanasonicCameraEpi
 
         public void TiltDown()
         {
-            _client.SendText(_cmd.TiltUpCommand);
+	        _client.SendText(_cmd.TiltDownCommand);			
         }
 
         public void TiltUp()
