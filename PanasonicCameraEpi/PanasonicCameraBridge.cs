@@ -69,28 +69,26 @@ namespace PanasonicCameraEpi
 			//		 Preset recalls began working after the trilist.SetSigHeldAction(recallJoin, 5000) and trilist.SetSigTrueAction(saveJoin) were commneted out
 	        for (var x = 1; x < 6; x++)
 	        {
-				Debug.Console(2, "foreach: {1} preset.Key: {0}", x, camera.Key);
+				Debug.Console(1, "{1} preset.Key: {0}", x, camera.Key);
 				var presetNumber = x;
-				var nameJoin = joinMap.PresetNameStart + presetNumber - 1;
 				var cameraLocal = camera;
-				//preset.Value.LinkInputSig(trilist.StringInput[nameJoin]);
-
+				
 				var recallJoin = joinMap.PresetRecallStart + presetNumber - 1; // 400 + 11 + 1 - 1 = 411
-				Debug.Console(2, "foreach: {1} recallJoin: {0}", recallJoin, camera.Key);
-				var saveJoin = joinMap.PresetSaveStart + presetNumber - 1;
+				Debug.Console(1, "{1} recallJoin: {0}", recallJoin, camera.Key);				
 				trilist.SetSigTrueAction((ushort)recallJoin, () =>
 				{
 					try
 					{
-						Debug.Console(2, "{1} cameraLocal.RecallPreset({0})", presetNumber, camera.Key);
-						cameraLocal.RecallPreset((int)presetNumber);					
+						Debug.Console(1, "{1} cameraLocal.RecallPreset({0})", presetNumber, camera.Key);
+						cameraLocal.RecallPreset(presetNumber);					
 					}
 					catch (Exception e)
 					{
-						Debug.Console(2, Debug.ErrorLogLevel.Error, "{1} cameraLocal.RecallPreset({0}) Exception: {2}", presetNumber, camera.Key, e);
-					}
-					
+						Debug.Console(1, Debug.ErrorLogLevel.Error, "{1} cameraLocal.RecallPreset({0}) Exception: {2}", presetNumber, camera.Key, e);
+					}					
 				});
+				
+				//var saveJoin = joinMap.PresetSaveStart + presetNumber - 1;
 				//trilist.SetSigHeldAction((ushort)recallJoin, 5000, () => cameraLocal.SavePreset((int)presetNumber));
 				//trilist.SetSigTrueAction((ushort)saveJoin, () => cameraLocal.SavePreset((int)presetNumber));   
 	        }

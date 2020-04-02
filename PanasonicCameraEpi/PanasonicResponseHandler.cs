@@ -33,6 +33,7 @@ namespace PanasonicCameraEpi
         {
             if (coms.Equals("200 OK \"p1\"")) OnCameraPowerdOn();
             else if (coms.Equals("200 OK \"p0\"")) OnCameraPowerdOff();
+			else if (coms.Equals("200 OK \"s01\"")) Debug.Console(1, "ProcessComms({0}) Preset 1 Recall Feedback", coms);
         }
 
         void OnCameraPowerdOn()

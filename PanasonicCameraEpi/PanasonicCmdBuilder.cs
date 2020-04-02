@@ -77,11 +77,14 @@ namespace PanasonicCameraEpi
 
         public string PresetRecallCommand(int preset)
         {
-            var command = Convert.ToString(preset);
+            var command = Convert.ToString(preset - 1);
             var formattedCommand = command.PadLeft(2, '0');
+			var cmd = BuildCmd(String.Format("R{0}", formattedCommand));
+
 			// TODO: Remove debug statement after working through camera preset issues noted in PanasonicCameraBridge.cs
-			Debug.Console(2, "PresetRecallCommand({0}) Cmd: {1}", preset, formattedCommand);
-            return BuildCmd(String.Format("R{0}", formattedCommand));
+			//Debug.Console(1, "PresetRecallCommand({0}) formattedCmd: R{1}", preset, formattedCommand);
+			Debug.Console(1, "PresetRecallCommand({0}) Cmd: {1}", preset, cmd);
+			return cmd;
         }
 
         public string PresetSaveCommand(int preset)

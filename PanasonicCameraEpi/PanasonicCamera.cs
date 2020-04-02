@@ -276,14 +276,14 @@ namespace PanasonicCameraEpi
         public void RecallPreset(int preset)
         {
 			// TODO: Remove debug statement after working through camera preset issues noted in PanasonicCameraBridge.cs
-	        Debug.Console(2, this, "RecallPreset({0})", preset);
+	        Debug.Console(0, this, "RecallPreset({0})", preset);
 	        try
 	        {
 		        _client.SendText(_cmd.PresetRecallCommand(preset));
 	        }
 	        catch (Exception e)
 	        {
-		        Debug.Console(2, this, "Recall Preset {0} Exception: {1}", preset, e);
+		        Debug.Console(2, this, Debug.ErrorLogLevel.Error, "Recall Preset {0} Exception: {1}", preset, e);
 	        }
         }
 
