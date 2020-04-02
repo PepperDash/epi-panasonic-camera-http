@@ -22,7 +22,7 @@ namespace PanasonicCameraEpi
         public IntFeedback NumberOfPresetsFeedback { get; private set; }
         public StringFeedback NameFeedback { get; private set; }
         //public StringFeedback ComsFeedback { get; set; }
-        public BoolFeedback IsOnlineFeedback { get { return _monitor.IsOnlineFeedback; } }
+        public BoolFeedback IsOnlineFeedback { get { return _monitor.IsOnlineFeedback; } }		
         public IntFeedback PanSpeedFeedback { get; private set; }
         public IntFeedback ZoomSpeedFeedback { get; private set; }
         public IntFeedback TiltSpeedFeedback { get; private set; }
@@ -91,9 +91,9 @@ namespace PanasonicCameraEpi
             var monitorConfig = cameraConfig.CommunicationMonitor ??
                                 new CommunicationMonitorConfig
                                 {
-                                    PollInterval = 10000,
-                                    TimeToWarning = 60000,
-                                    TimeToError = 120000,
+                                    PollInterval = 60000,
+                                    TimeToWarning = 180000,
+                                    TimeToError = 300000,
                                     PollString = "O"
                                 };
 
@@ -275,7 +275,16 @@ namespace PanasonicCameraEpi
 
         public void RecallPreset(int preset)
         {
-            _client.SendText(_cmd.PresetRecallCommand(preset));
+			// TODO: Remove debug statement after working through camera preset issues noted in PanasonicCameraBridge.cs
+	        Debug.Console(2, this, "RecallPreset({0})", preset);
+	        try
+	        {
+		        _client.SendText(_cmd.PresetRecallCommand(preset));
+	        }
+	        catch (Exception e)
+	        {
+		        Debug.Console(2, this, "Recall Preset {0} Exception: {1}", preset, e);
+	        }
         }
 
         public void SavePreset(int preset)

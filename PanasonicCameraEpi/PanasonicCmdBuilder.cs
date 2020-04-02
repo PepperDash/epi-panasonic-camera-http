@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Text;
+using PepperDash.Core;
 
 namespace PanasonicCameraEpi
 {
@@ -78,6 +79,8 @@ namespace PanasonicCameraEpi
         {
             var command = Convert.ToString(preset);
             var formattedCommand = command.PadLeft(2, '0');
+			// TODO: Remove debug statement after working through camera preset issues noted in PanasonicCameraBridge.cs
+			Debug.Console(2, "PresetRecallCommand({0}) Cmd: {1}", preset, formattedCommand);
             return BuildCmd(String.Format("R{0}", formattedCommand));
         }
 
