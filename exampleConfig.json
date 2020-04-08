@@ -1,0 +1,32 @@
+{
+    "key": "Camera01",
+    "uid": 1010,
+    "name": "Main Camera",
+    "group": "cameras",
+    "type": "panasonicHttpCamera",
+    "properties": {
+        "control": {
+            "type": "http",
+            "tcpSshProperties": {
+                "address": "192.168.10.21",
+                "port": 0
+            }
+        },
+        "communicationMonitor": {
+            "pollInterval": 10000,
+            "pollString": "O",
+            "timeToError": 60000,
+            "timeToWarning": 120000
+        },
+        "presets": [
+            {
+                "id": 1,
+                "name": "Wide"
+            },
+            {
+                "id": 2,
+                "name": "Zoom"
+            }
+        ]
+    }
+}
