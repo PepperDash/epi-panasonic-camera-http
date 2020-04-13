@@ -6,8 +6,8 @@ namespace PanasonicCameraEpi
 {
     public class PanasonicCmdBuilder
     {
-        private static readonly string cmd1 = "cgi-bin/aw_ptz?cmd=%23";
-        private static readonly string cmd2 = "&res=1";
+        private static readonly string CmdHeader = "cgi-bin/aw_ptz?cmd=%23";
+        private static readonly string CmdSuffix = "&res=1";
 
         public string PanStopCommand { get; private set; }
         public string TiltStopCommand { get; private set; }
@@ -79,26 +79,25 @@ namespace PanasonicCameraEpi
         {
             var command = Convert.ToString(preset - 1);
             var formattedCommand = command.PadLeft(2, '0');
-			var cmd = BuildCmd(String.Format("R{0}", formattedCommand));
-
-			// TODO: Remove debug statement after working through camera preset issues noted in PanasonicCameraBridge.cs
-			//Debug.Console(1, "PresetRecallCommand({0}) formattedCmd: R{1}", preset, formattedCommand);
-			Debug.Console(1, "PresetRecallCommand({0}) Cmd: {1}", preset, cmd);
+			var cmd = BuildCmd(String.Format("R{0}", formattedCommand));			
+			Debug.Console(2, "PresetRecallCommand({0}) Cmd: {1}", preset, cmd);
 			return cmd;
         }
 
         public string PresetSaveCommand(int preset)
         {
-            var command = Convert.ToString(preset);
-            var formattedCommand = command.PadLeft(2, '0');
-            return BuildCmd(String.Format("M{0}", formattedCommand));
+			var command = Convert.ToString(preset - 1);
+			var formattedCommand = command.PadLeft(2, '0');
+			var cmd = BuildCmd(String.Format("M{0}", formattedCommand));
+			Debug.Console(2, "PresetSaveCommand({0}) Cmd: {1}", preset, cmd);
+			return cmd;
         }
 
         static string BuildCmd(string cmd)
         {
-            var builder = new StringBuilder("cgi-bin/aw_ptz?cmd=%23");
+            var builder = new StringBuilder(CmdHeader);
             builder.Append(cmd);
-            builder.Append("&res=1");
+            builder.Append(CmdSuffix);
 
             return builder.ToString();
         }

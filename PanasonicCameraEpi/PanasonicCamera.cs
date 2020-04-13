@@ -50,7 +50,7 @@ namespace PanasonicCameraEpi
                 {
                     comms = new GenericHttpClient(string.Format("{0}-httpClient", config.Key), config.Name,
                         config.Properties["control"]["tcpSshProperties"].Value<string>("address"));
-
+					
                     DeviceManager.AddDevice(comms);
                 }
                 catch (NullReferenceException)
@@ -72,7 +72,7 @@ namespace PanasonicCameraEpi
         {
             Capabilities = eCameraCapabilities.Pan | eCameraCapabilities.Tilt | eCameraCapabilities.Zoom | eCameraCapabilities.Focus;
 
-            _client = comms;
+	        _client = comms;
  
             var cameraConfig = PanasonicCameraPropsConfig.FromDeviceConfig(config);
 
@@ -94,7 +94,7 @@ namespace PanasonicCameraEpi
                                     PollInterval = 60000,
                                     TimeToWarning = 180000,
                                     TimeToError = 300000,
-                                    PollString = "O"
+									PollString = "cgi-bin/aw_ptz?cmd=%23O&res=1"									
                                 };
 
             _monitor = new GenericCommunicationMonitor(this, _client, monitorConfig);
@@ -258,7 +258,7 @@ namespace PanasonicCameraEpi
 
         public void ZoomOut()
         {
-            _client.SendText(_cmd.ZoomOutCommand);
+            _client.SendText(_cmd.ZoomOutCommand);		
         }
 
         public void ZoomStop()
@@ -275,16 +275,7 @@ namespace PanasonicCameraEpi
 
         public void RecallPreset(int preset)
         {
-			// TODO: Remove debug statement after working through camera preset issues noted in PanasonicCameraBridge.cs
-	        Debug.Console(0, this, "RecallPreset({0})", preset);
-	        try
-	        {
-		        _client.SendText(_cmd.PresetRecallCommand(preset));
-	        }
-	        catch (Exception e)
-	        {
-		        Debug.Console(2, this, Debug.ErrorLogLevel.Error, "Recall Preset {0} Exception: {1}", preset, e);
-	        }
+			_client.SendText(_cmd.PresetRecallCommand(preset));	        
         }
 
         public void SavePreset(int preset)
