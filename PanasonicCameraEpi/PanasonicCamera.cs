@@ -103,7 +103,6 @@ namespace PanasonicCameraEpi
             
 
             Presets = cameraConfig.Presets.OrderBy(x => x.Id);
-            PresetNamesFeedbacks = new Dictionary<uint, StringFeedback>();
         }
 
         public override bool CustomActivate()
@@ -142,11 +141,12 @@ namespace PanasonicCameraEpi
             TiltSpeedFeedback.FireUpdate();
             ZoomSpeedFeedback.FireUpdate();
 
-            Presets.ToList().ForEach(preset =>
-                {
-                    PresetNamesFeedbacks.Add((uint)preset.Id, new StringFeedback(() => preset.Name));
-                    PresetNamesFeedbacks[(uint)preset.Id].FireUpdate();
-                });
+            PresetNamesFeedbacks = Presets.ToDictionary(x => (uint)x.Id, x => new StringFeedback(() => x.Name));
+
+            foreach (var feedback in PresetNamesFeedbacks)
+            {
+                feedback.Value.FireUpdate();
+            }
 
             CameraIsOffFeedback = new BoolFeedback(() => !IsPoweredOn);
             CameraIsOffFeedback.FireUpdate(); 
