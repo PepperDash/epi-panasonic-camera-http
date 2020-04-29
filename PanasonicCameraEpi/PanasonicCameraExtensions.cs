@@ -10,7 +10,7 @@ namespace PanasonicCameraEpi
 
             if (inputRange <= 0)
             {
-                throw new ArithmeticException(string.Format("Invalid Input Range '{0}' for Scaling.  Min '{1}' Max '{2}'.", inputRange, inMin, inMax));
+                //throw new ArithmeticException(string.Format("Invalid Input Range '{0}' for Scaling.  Min '{1}' Max '{2}'.", inputRange, inMin, inMax));
             }
 
             int outputRange = outMax - outMin;
