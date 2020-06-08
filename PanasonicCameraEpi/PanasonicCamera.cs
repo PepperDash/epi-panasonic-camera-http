@@ -39,7 +39,7 @@ namespace PanasonicCameraEpi
             if (method == null)
             {
                 Debug.Console(0, Debug.ErrorLogLevel.Warning, "No valid control method found");
-                return null;
+                throw new NullReferenceException("No valid control method found");
             }
 
             IBasicCommunication comms;
@@ -55,8 +55,8 @@ namespace PanasonicCameraEpi
                 }
                 catch (NullReferenceException)
                 {
-                    Debug.LogError(Debug.ErrorLogLevel.Error, String.Format("Hostname or address not found"));
-                    return null;
+                    Debug.Console(0, Debug.ErrorLogLevel.Warning, "Hostname or address not found");
+                    throw;
                 }
             }
             else
