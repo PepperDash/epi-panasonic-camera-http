@@ -17,12 +17,12 @@ namespace PanasonicCameraEpi
 			ComsFb = new StringFeedback(() => _comsRx ?? string.Empty);
         }
 
-        public void HandleResponseRecived(object sender, GenericCommMethodReceiveTextArgs e)
+        public void HandleResponseReceeved(object sender, GenericCommMethodReceiveTextArgs e)
         {
 			Debug.Console(2, "HandleResponseRecived Response:{0}\r", e.Text);
         }
 
-		public void HandleResponseRecived(object sender, GenericHttpClientEventArgs e)
+		public void HandleResponseReceived(object sender, GenericHttpClientEventArgs e)
 		{
 			Debug.Console(2, "Http HandleResponseRecived: {0} Response:{1}, Error: {2}\r", e.RequestPath, e.ResponseText, e.Error);
 			_comsRx = e.ResponseText;
@@ -31,9 +31,14 @@ namespace PanasonicCameraEpi
 		}
         void ProcessComs(string coms)
         {
-            if (coms.Equals("200 OK \"p1\"")) OnCameraPowerdOn();
-            else if (coms.Equals("200 OK \"p0\"")) OnCameraPowerdOff();
-			else if (coms.Equals("200 OK \"s01\"")) Debug.Console(1, "ProcessComms({0}) Preset 1 Recall Feedback", coms);
+            if (coms.Contains("p1")) 
+                OnCameraPowerdOn();
+
+            else if (coms.Contains("p0")) 
+                OnCameraPowerdOff();
+
+			else if (coms.Contains("s01")) 
+                Debug.Console(1, "ProcessComms({0}) Preset 1 Recall Feedback", coms);
         }
 
         void OnCameraPowerdOn()

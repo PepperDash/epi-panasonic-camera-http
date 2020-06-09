@@ -78,30 +78,28 @@ namespace PanasonicCameraEpi
 
 			_responseHandler = new PanasonicResponseHandler();
 
-            var tempClient = _client as GenericHttpClient;
-
-            if(tempClient == null) {
-                _client.TextReceived += _responseHandler.HandleResponseRecived;
-			}
-			else
-            {
-                tempClient.ResponseRecived += _responseHandler.HandleResponseRecived;
-            }
-
             var monitorConfig = cameraConfig.CommunicationMonitor ??
                                 new CommunicationMonitorConfig
                                 {
                                     PollInterval = 60000,
                                     TimeToWarning = 180000,
                                     TimeToError = 300000,
-									PollString = "cgi-bin/aw_ptz?cmd=%23O&res=1"									
+                                    PollString = "cgi-bin/aw_ptz?cmd=%23O&res=1"
                                 };
 
-            _monitor = new GenericCommunicationMonitor(this, _client, monitorConfig);
+            var tempClient = _client as GenericHttpClient;
+            if(tempClient == null) 
+            {
+                _monitor = new GenericCommunicationMonitor(this, _client, monitorConfig);
+                _client.TextReceived += _responseHandler.HandleResponseReceeved;
+			}
+			else
+            {
+                _monitor = new PanasonicHttpCameraMonitor(this, tempClient, monitorConfig);
+                tempClient.ResponseRecived += _responseHandler.HandleResponseReceived;
+            }
 
             _cmd = new PanasonicCmdBuilder(25, 25, 25);
-            
-
             Presets = cameraConfig.Presets.OrderBy(x => x.Id);
         }
 
@@ -120,9 +118,15 @@ namespace PanasonicCameraEpi
                     CameraIsOffFeedback.FireUpdate();
                 };
 
+            _monitor.StatusChange += HandleMonitorStatusChange;
             _monitor.Start();
 
             return true;
+        }
+
+        private void HandleMonitorStatusChange(object sender, MonitorStatusChangeEventArgs e)
+        {
+            Debug.Console(1, this, "STATUS: '{0}'", e.Message);
         }
 
         private void SetupFeedbacks()

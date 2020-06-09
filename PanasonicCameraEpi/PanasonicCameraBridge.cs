@@ -72,6 +72,7 @@ namespace PanasonicCameraEpi
 		        var nameJoin = joinMap.PresetNameStart + presetNumber - 1;
 		        var cameraLocal = camera;
 		        preset.Value.LinkInputSig(trilist.StringInput[nameJoin]);
+                preset.Value.FireUpdate();
 
 		        var recallJoin = joinMap.PresetRecallStart + presetNumber - 1;
 		        var saveJoin = joinMap.PresetSaveStart + presetNumber - 1;				
