@@ -1,4 +1,3 @@
-[submodule "Essentials-Builds"]
-	path = Essentials-Builds
-url=https://github.com/PepperDash-Engineering/essentials-builds.git
-	branch = release
+[submodule "essentials-builds"]
+	path = essentials-builds
+	url = https://github.com/PepperDash-Engineering/essentials-builds.git
