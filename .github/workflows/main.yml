@@ -1,11 +1,11 @@
-name: Master Build using Docker
+name: Main Build using Docker
 
 on:
   release:
     types:
       - created
     branches:
-      - master
+      - main
 env:
   # solution path doesn't need slashes unless there it is multiple folders deep
   # solution name does not include extension. .sln is assumed
@@ -15,8 +15,8 @@ env:
   VERSION: 0.0.0-buildtype-buildnumber
   # Defaults to debug for build type
   BUILD_TYPE: Release
-  # Defaults to master as the release branch.  Change as necessary
-  RELEASE_BRANCH: master
+  # Defaults to main as the release branch.  Change as necessary
+  RELEASE_BRANCH: main
 jobs:
   Build_Project:
     runs-on: windows-latest
