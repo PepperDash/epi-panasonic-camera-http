@@ -18,7 +18,7 @@ $newVersion = [version]$latestVersion
 $phase = ""
 $newVersionString = ""
 switch -regex ($Env:GITHUB_REF) {
-  '^refs\/heads\/main*.' {
+  '^refs\/heads\/master*.' {
     $newVersionString = "{0}.{1}.{2}" -f $newVersion.Major, $newVersion.Minor, $newVersion.Build
   }
   '^refs\/heads\/feature\/*.' {
