@@ -34,9 +34,9 @@ namespace PanasonicCameraEpi
             HomeCommand = BuildCmd("APC80008000");
             PrivacyCommand = BuildCmd("APC00000000");
 
-            PanSpeed = panSpeed;
-            ZoomSpeed = zoomSpeed;
-            TiltSpeed = tiltSpeed;
+            PanSpeed = panSpeed == 0 ? 25 : panSpeed;
+            ZoomSpeed = zoomSpeed == 0 ? 25 : zoomSpeed;
+            TiltSpeed = tiltSpeed == 0 ? 25 : tiltSpeed;
         }
 
         private int _panSpeed;

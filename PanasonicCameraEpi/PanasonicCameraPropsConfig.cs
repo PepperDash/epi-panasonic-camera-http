@@ -29,5 +29,9 @@ namespace PanasonicCameraEpi
 
         [JsonProperty("presets")]
         public List<PanasonicCameraPreset> Presets { get; set; }
+
+        public int PanSpeed { get; set; }
+        public int ZoomSpeed { get; set; }
+        public int TiltSpeed { get; set; }
     }
 }

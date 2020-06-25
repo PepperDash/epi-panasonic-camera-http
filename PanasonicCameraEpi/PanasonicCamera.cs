@@ -12,9 +12,9 @@ namespace PanasonicCameraEpi
     public class PanasonicCamera : CameraBase, IHasCameraPtzControl, IHasCameraOff, ICommunicationMonitor, IBridge
     {
         private readonly StatusMonitorBase _monitor;
-		private readonly IBasicCommunication _client;
         private readonly PanasonicCmdBuilder _cmd;
         private readonly PanasonicResponseHandler _responseHandler;
+        private readonly CommandQueue _queue;
 
         public bool IsPoweredOn { get; private set; }
         public IEnumerable<PanasonicCameraPreset> Presets { get; private set; }
@@ -71,8 +71,6 @@ namespace PanasonicCameraEpi
             : base(config.Key, config.Name)
         {
             Capabilities = eCameraCapabilities.Pan | eCameraCapabilities.Tilt | eCameraCapabilities.Zoom | eCameraCapabilities.Focus;
-
-	        _client = comms;
  
             var cameraConfig = PanasonicCameraPropsConfig.FromDeviceConfig(config);
 
@@ -87,11 +85,11 @@ namespace PanasonicCameraEpi
                                     PollString = "cgi-bin/aw_ptz?cmd=%23O&res=1"
                                 };
 
-            var tempClient = _client as GenericHttpClient;
+            var tempClient = comms as GenericHttpClient;
             if(tempClient == null) 
             {
-                _monitor = new GenericCommunicationMonitor(this, _client, monitorConfig);
-                _client.TextReceived += _responseHandler.HandleResponseReceeved;
+                _monitor = new GenericCommunicationMonitor(this, tempClient, monitorConfig);
+                tempClient.TextReceived += _responseHandler.HandleResponseReceeved;
 			}
 			else
             {
@@ -99,7 +97,9 @@ namespace PanasonicCameraEpi
                 tempClient.ResponseRecived += _responseHandler.HandleResponseReceived;
             }
 
-            _cmd = new PanasonicCmdBuilder(25, 25, 25);
+            _cmd = new PanasonicCmdBuilder(12, 25, 12);
+            _queue = new CommandQueue(comms);
+
             Presets = cameraConfig.Presets.OrderBy(x => x.Id);
         }
 
@@ -190,12 +190,12 @@ namespace PanasonicCameraEpi
 
         public void PositionHome()
         {
-            _client.SendText(_cmd.HomeCommand);
+            _queue.EnqueueCmd(_cmd.HomeCommand);
         }
 
         public void PositionPrivacy()
         {
-            _client.SendText(_cmd.PrivacyCommand);
+            _queue.EnqueueCmd(_cmd.PrivacyCommand);
         }
 
         #endregion
@@ -204,17 +204,17 @@ namespace PanasonicCameraEpi
 
         public void PanLeft()
         {
-            _client.SendText(_cmd.PanLeftCommand);
+            _queue.EnqueueCmd(_cmd.PanLeftCommand);
         }
 
         public void PanRight()
         {
-            _client.SendText(_cmd.PanRightCommand);
+            _queue.EnqueueCmd(_cmd.PanRightCommand);
         }
 
         public void PanStop()
         {
-            _client.SendText(_cmd.PanStopCommand);
+            _queue.EnqueueCmd(_cmd.PanStopCommand);
         }
 
         #endregion
@@ -223,17 +223,17 @@ namespace PanasonicCameraEpi
 
         public void TiltDown()
         {
-	        _client.SendText(_cmd.TiltDownCommand);			
+            _queue.EnqueueCmd(_cmd.TiltDownCommand);			
         }
 
         public void TiltUp()
         {
-            _client.SendText(_cmd.TiltUpCommand);
+            _queue.EnqueueCmd(_cmd.TiltUpCommand);
         }
 
         public void TiltStop()
         {
-            _client.SendText(_cmd.TiltStopCommand);
+            _queue.EnqueueCmd(_cmd.TiltStopCommand);
         }    
 
         #endregion
@@ -243,12 +243,12 @@ namespace PanasonicCameraEpi
 
         public void CameraOn()
         {
-            _client.SendText(_cmd.PowerOnCommand);
+            _queue.EnqueueCmd(_cmd.PowerOnCommand);
         }
 
         public void CameraOff()
         {
-            _client.SendText(_cmd.PowerOffCommand);
+            _queue.EnqueueCmd(_cmd.PowerOffCommand);
         }
 
         #endregion
@@ -257,34 +257,34 @@ namespace PanasonicCameraEpi
 
         public void ZoomIn()
         {
-            _client.SendText(_cmd.ZoomInCommand);
+            _queue.EnqueueCmd(_cmd.ZoomInCommand);
         }
 
         public void ZoomOut()
         {
-            _client.SendText(_cmd.ZoomOutCommand);		
+            _queue.EnqueueCmd(_cmd.ZoomOutCommand);		
         }
 
         public void ZoomStop()
         {
-            _client.SendText(_cmd.ZoomStopCommand);
+            _queue.EnqueueCmd(_cmd.ZoomStopCommand);
         }
 
         #endregion
 
         public void SendCustomCommand(string cmd)
         {
-            _client.SendText(PanasonicCmdBuilder.BuildCustomCommand(cmd));
+            _queue.EnqueueCmd(PanasonicCmdBuilder.BuildCustomCommand(cmd));
         }
 
         public void RecallPreset(int preset)
         {
-			_client.SendText(_cmd.PresetRecallCommand(preset));	        
+            _queue.EnqueueCmd(_cmd.PresetRecallCommand(preset));	        
         }
 
         public void SavePreset(int preset)
         {
-            _client.SendText(_cmd.PresetSaveCommand(preset));
+            _queue.EnqueueCmd(_cmd.PresetSaveCommand(preset));
         }
 
         #region IBridge Members
