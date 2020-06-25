@@ -90,15 +90,17 @@ namespace PanasonicCameraEpi
             {
                 _monitor = new GenericCommunicationMonitor(this, tempClient, monitorConfig);
                 tempClient.TextReceived += _responseHandler.HandleResponseReceeved;
+                throw new NotImplementedException("Need to create a command queue for serial");
 			}
 			else
             {
                 _monitor = new PanasonicHttpCameraMonitor(this, tempClient, monitorConfig);
-                tempClient.ResponseRecived += _responseHandler.HandleResponseReceived;
+                var queue = new HttpCommandQueue(comms);
+                queue.ResponseReceived += _responseHandler.HandleResponseReceived;
+                _queue = queue;
             }
 
             _cmd = new PanasonicCmdBuilder(12, 25, 12);
-            _queue = new CommandQueue(comms);
 
             Presets = cameraConfig.Presets.OrderBy(x => x.Id);
         }

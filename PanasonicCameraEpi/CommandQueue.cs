@@ -9,11 +9,13 @@ using PepperDash.Essentials.Core;
 
 namespace PanasonicCameraEpi
 {
-    public class CommandQueue : IDisposable
+    public abstract class CommandQueue : IDisposable, IKeyed
     {
-        private readonly CrestronQueue<string> _cmdQueue;
+        protected readonly CrestronQueue<string> _cmdQueue;
         private readonly Thread _worker;
-        private readonly CEvent _wh = new CEvent();
+        protected readonly CEvent _wh = new CEvent();
+
+        public string Key { get; private set; }
 
         public bool Disposed { get; private set; }
 
@@ -22,6 +24,7 @@ namespace PanasonicCameraEpi
             _cmdQueue = new CrestronQueue<string>();
             _worker = new Thread(ProcessCmd, coms, Thread.eThreadStartOptions.Running);
             _worker.Name = coms.Key + "-Thread";
+            Key = coms.Key;
 
             CrestronEnvironment.ProgramStatusEventHandler += programEvent =>
             {
@@ -33,39 +36,7 @@ namespace PanasonicCameraEpi
             };
         }
 
-        object ProcessCmd(object obj)
-        {
-            var coms = obj as IBasicCommunication;
-
-            while (true)
-            {
-                string cmd = null;
-
-                if (_cmdQueue.Count > 0)
-                {
-                    cmd = _cmdQueue.Dequeue();
-                    if (cmd == null)
-                        break;
-                }
-                if (cmd != null)
-                {
-                    try
-                    {
-                        if (!String.IsNullOrEmpty(cmd))
-                            coms.SendText(cmd);
-
-                        Thread.Sleep(250);
-                    }
-                    catch (Exception ex)
-                    {
-                        Debug.ConsoleWithLog(0, coms, "Caught an exception in the CmdProcessor {0}\r{1}\r{2}", ex.Message, ex.InnerException, ex.StackTrace);
-                    }
-                }
-                else _wh.Wait();
-            }
-
-            return null;
-        }
+        protected abstract object ProcessCmd(object obj);
 
         public void EnqueueCmd(string cmd)
         {
@@ -81,7 +52,7 @@ namespace PanasonicCameraEpi
             CrestronEnvironment.GC.SuppressFinalize(this);
         }
 
-        private void Dispose(bool disposing)
+        protected virtual void Dispose(bool disposing)
         {
             if (Disposed)
                 return;

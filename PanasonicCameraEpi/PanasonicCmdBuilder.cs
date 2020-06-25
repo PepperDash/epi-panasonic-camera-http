@@ -45,7 +45,7 @@ namespace PanasonicCameraEpi
             get { return _panSpeed; }
             set
             {
-                _panSpeed = PanSpeed <= 0 || PanSpeed >= 50 ? 25 : PanSpeed;
+                _panSpeed = value <= 0 || value >= 50 ? 25 : value;
                 PanLeftCommand = BuildCmd(String.Format("P{0}", 50 - _panSpeed));
                 PanRightCommand = BuildCmd(String.Format("P{0}", _panSpeed + 50));
             }
@@ -56,8 +56,8 @@ namespace PanasonicCameraEpi
         {
             get { return _tiltSpeed; }
             set
-            {                
-	            _tiltSpeed = TiltSpeed <= 0 || TiltSpeed >= 50 ? 25 : TiltSpeed;
+            {
+                _tiltSpeed = value <= 0 || value >= 50 ? 25 : value;
                 TiltDownCommand = BuildCmd(String.Format("T{0}", 50 - _tiltSpeed));
                 TiltUpCommand = BuildCmd(String.Format("T{0}", _tiltSpeed + 50));
             }
@@ -69,7 +69,7 @@ namespace PanasonicCameraEpi
             get { return _zoomSpeed; }
             set
             {
-	            _zoomSpeed = ZoomSpeed <= 0 || ZoomSpeed >= 50 ? 25 : ZoomSpeed;
+                _zoomSpeed = value <= 0 || value >= 50 ? 25 : value;
                 ZoomOutCommand = BuildCmd(String.Format("Z{0}", 50 - _zoomSpeed));
                 ZoomInCommand = BuildCmd(String.Format("Z{0}", _zoomSpeed + 50));
             }
