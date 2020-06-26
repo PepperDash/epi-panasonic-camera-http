@@ -47,7 +47,8 @@ namespace PanasonicCameraEpi
                         var response = client.Client.Dispatch(request);
                         using (response)
                         {
-                            OnResponseReceived(response);
+                            if (!String.IsNullOrEmpty(response.ContentString))
+                                OnResponseReceived(response);
                         }
                     }
                     catch (Exception ex)
