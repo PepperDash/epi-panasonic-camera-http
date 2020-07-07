@@ -29,6 +29,7 @@ namespace PanasonicCameraEpi
 			ProcessComs(_comsRx);
 			ComsFb.FireUpdate();
 		}
+
         void ProcessComs(string coms)
         {
             if (coms.Contains("p1")) 
@@ -36,9 +37,6 @@ namespace PanasonicCameraEpi
 
             else if (coms.Contains("p0")) 
                 OnCameraPowerdOff();
-
-			else if (coms.Contains("s01")) 
-                Debug.Console(1, "ProcessComms({0}) Preset 1 Recall Feedback", coms);
         }
 
         void OnCameraPowerdOn()
