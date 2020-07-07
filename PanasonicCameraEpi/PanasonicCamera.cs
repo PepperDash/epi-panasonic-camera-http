@@ -173,7 +173,7 @@ namespace PanasonicCameraEpi
             get { return _cmd.ZoomSpeed; }
             set 
             { 
-                _cmd.ZoomSpeed = (ZoomSpeed <= 0 || ZoomSpeed >= 50 ? 25 : value);
+                _cmd.ZoomSpeed = value;
                 ZoomSpeedFeedback.FireUpdate();
             }
         }
