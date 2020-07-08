@@ -9,7 +9,7 @@ using PepperDash.Core;
 
 namespace PanasonicCameraEpi
 {
-    public class PanasonicCamera : CameraBase, IHasCameraPtzControl, IHasCameraOff, ICommunicationMonitor, IBridge
+    public class PanasonicCamera : CameraBase, IHasCameraPtzControl, IHasCameraOff, ICommunicationMonitor, IBridge, IRoutingSource
     {
         private readonly StatusMonitorBase _monitor;
         private readonly PanasonicCmdBuilder _cmd;
@@ -103,6 +103,30 @@ namespace PanasonicCameraEpi
             _cmd = new PanasonicCmdBuilder(12, 25, 12);
 
             Presets = cameraConfig.Presets.OrderBy(x => x.Id);
+
+            AddPostActivationAction(() =>
+                {
+                    if (cameraConfig.ZoomSpeed == 0)
+                        return;
+
+                    ZoomSpeed = cameraConfig.ZoomSpeed;
+                });
+
+            AddPostActivationAction(() =>
+            {
+                if (cameraConfig.TiltSpeed == 0)
+                    return;
+
+                TiltSpeed = cameraConfig.TiltSpeed;
+            });
+
+            AddPostActivationAction(() =>
+            {
+                if (cameraConfig.PanSpeed == 0)
+                    return;
+
+                PanSpeed = cameraConfig.PanSpeed;
+            });
         }
 
         public override bool CustomActivate()
