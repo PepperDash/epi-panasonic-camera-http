@@ -42,7 +42,7 @@ namespace PanasonicCameraEpi
                         var url = String.Format("http://{0}/{1}", client.Client.HostName, path);
                         request.Url.Parse(url);
 
-                        Debug.Console(2, client, "Dispatching request: {0}", request.Url.PathAndParams);
+                        Debug.Console(1, client, "Dispatching request: {0}", request.Url.PathAndParams);
 
                         var response = client.Client.Dispatch(request);
                         using (response)
