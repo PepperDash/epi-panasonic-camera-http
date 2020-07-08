@@ -58,7 +58,7 @@ namespace PanasonicCameraEpi
             trilist.SetSigTrueAction(joinMap.PowerOn, camera.CameraOn);
             trilist.SetSigTrueAction(joinMap.PowerOff, camera.CameraOff);
             trilist.SetSigTrueAction(joinMap.PrivacyOn, camera.PositionPrivacy);
-            trilist.SetSigTrueAction(joinMap.PrivacyOff, camera.PositionHome);
+            trilist.SetSigTrueAction(joinMap.PrivacyOff, () => camera.RecallPreset(1));
 			trilist.SetSigTrueAction(joinMap.Home, camera.PositionHome);
 
             trilist.SetUShortSigAction(joinMap.PanSpeed, panSpeed => camera.PanSpeed = panSpeed);
