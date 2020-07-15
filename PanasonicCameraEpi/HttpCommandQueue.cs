@@ -38,6 +38,8 @@ namespace PanasonicCameraEpi
                 {
                     try
                     {
+                        client.Client.KeepAlive = true;
+
                         var request = new HttpClientRequest();
                         var url = String.Format("http://{0}/{1}", client.Client.HostName, path);
                         request.Url.Parse(url);
