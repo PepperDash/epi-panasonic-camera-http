@@ -33,6 +33,7 @@ namespace PanasonicCameraEpi
                     if (eventType != eProgramStatusEventType.Stopping)
                         return;
 
+                    Debug.Console(1, this, "Program stopping, disposing of error timers...");
                     Stop();
                     _timer.Dispose();
                 };
@@ -54,7 +55,7 @@ namespace PanasonicCameraEpi
 
         public override void Stop()
         {
-            Debug.Console(1, this, "Program stopping, killing error timers...");
+            
             _timer.Stop();
             StopErrorTimers();
         }

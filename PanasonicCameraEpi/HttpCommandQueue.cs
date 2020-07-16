@@ -53,7 +53,7 @@ namespace PanasonicCameraEpi
                     }
                     catch (Exception ex)
                     {
-                        Debug.ConsoleWithLog(0, client, "Caught an exception in the CmdProcessor {0}\r{1}\r{2}", ex.Message, ex.InnerException, ex.StackTrace);
+                        Debug.Console(1, client, "Caught an exception in the CmdProcessor {0}\r{1}\r{2}", ex.Message, ex.InnerException, ex.StackTrace);
                     }
                 }
                 else _wh.Wait();

@@ -44,12 +44,14 @@ namespace PanasonicCameraEpi
 
             IBasicCommunication comms;
 
-            if (method.ToLower() == "http")
+            if (method.Equals("http", StringComparison.OrdinalIgnoreCase))
             {
                 try
                 {
-                    comms = new GenericHttpClient(string.Format("{0}-httpClient", config.Key), config.Name,
+                    var client = new GenericHttpClient(string.Format("{0}-httpClient", config.Key), config.Name,
                         config.Properties["control"]["tcpSshProperties"].Value<string>("address"));
+
+                    comms = client; 
 					
                     DeviceManager.AddDevice(comms);
                 }
