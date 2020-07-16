@@ -24,7 +24,7 @@ namespace PanasonicCameraEpi
 
 		public void HandleResponseReceived(object sender, GenericHttpClientEventArgs e)
 		{
-			Debug.Console(2, "Http HandleResponseRecived: {0} Response:{1}, Error: {2}\r", e.RequestPath, e.ResponseText, e.Error);
+			Debug.Console(1, "Received Response: {0} Response:{1}, Error: {2}\r", e.RequestPath, e.ResponseText, e.Error);
 			_comsRx = e.ResponseText;
 			ProcessComs(_comsRx);
 			ComsFb.FireUpdate();
