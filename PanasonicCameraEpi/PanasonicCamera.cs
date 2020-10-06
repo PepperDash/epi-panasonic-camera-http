@@ -1,15 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Newtonsoft.Json.Linq;
 using PepperDash.Essentials.Bridges;
 using PepperDash.Essentials.Core.Config;
 using PepperDash.Essentials.Core;
+using PepperDash.Essentials.Core.Devices;
 using PepperDash.Essentials.Devices.Common.Cameras;
 using PepperDash.Core;
 
 namespace PanasonicCameraEpi
 {
-    public class PanasonicCamera : CameraBase, IHasCameraPtzControl, IHasCameraOff, ICommunicationMonitor, IBridge, IRoutingSource
+    public class PanasonicCamera : ReconfigurableDevice, IHasCameraPtzControl, IHasCameraOff, ICommunicationMonitor, IBridge, IRoutingSource
     {
         private readonly StatusMonitorBase _monitor;
         private readonly PanasonicCmdBuilder _cmd;
@@ -70,9 +72,9 @@ namespace PanasonicCameraEpi
         }
 
         public PanasonicCamera(IBasicCommunication comms, DeviceConfig config)
-            : base(config.Key, config.Name)
+            : base(config)
         {
-            Capabilities = eCameraCapabilities.Pan | eCameraCapabilities.Tilt | eCameraCapabilities.Zoom | eCameraCapabilities.Focus;
+            OutputPorts = new RoutingPortCollection<RoutingOutputPort>();
  
             var cameraConfig = PanasonicCameraPropsConfig.FromDeviceConfig(config);
 
@@ -92,7 +94,7 @@ namespace PanasonicCameraEpi
             {
                 _monitor = new GenericCommunicationMonitor(this, tempClient, monitorConfig);
                 tempClient.TextReceived += _responseHandler.HandleResponseReceeved;
-                throw new NotImplementedException("Need to create a command queue for serial");
+                    throw new NotImplementedException("Need to create a command queue for serial");
 			}
 			else
             {
@@ -176,9 +178,7 @@ namespace PanasonicCameraEpi
             PresetNamesFeedbacks = Presets.ToDictionary(x => (uint)x.Id, x => new StringFeedback(() => x.Name));
 
             foreach (var feedback in PresetNamesFeedbacks)
-            {
                 feedback.Value.FireUpdate();
-            }
 
             CameraIsOffFeedback = new BoolFeedback(() => !IsPoweredOn);
             CameraIsOffFeedback.FireUpdate(); 
@@ -267,6 +267,7 @@ namespace PanasonicCameraEpi
         #endregion
 
         #region IHasCameraOff Members
+
         public BoolFeedback CameraIsOffFeedback { get; private set; }
 
         public void CameraOn()
@@ -315,6 +316,27 @@ namespace PanasonicCameraEpi
             _queue.EnqueueCmd(_cmd.PresetSaveCommand(preset));
         }
 
+        public void UpdatePresetName(int presetId, string name)
+        {
+            if (String.IsNullOrEmpty(name))
+                return;
+
+            var preset = Presets.FirstOrDefault(t => t.Id == presetId) ?? new PanasonicCameraPreset() {Id = presetId};
+            preset.Name = name;
+
+            if (!PresetNamesFeedbacks.ContainsKey((uint) presetId))
+                PresetNamesFeedbacks.Add((uint) presetId, new StringFeedback(() => preset.Name));
+
+            foreach (var feedback in PresetNamesFeedbacks)
+                feedback.Value.FireUpdate();
+
+            var props = PanasonicCameraPropsConfig.FromDeviceConfig(Config);
+            props.Presets = Presets.ToList();
+
+            Config.Properties = JObject.FromObject(props);
+            SetConfig(Config);
+        }
+
         #region IBridge Members
 
         public void LinkToApi(Crestron.SimplSharpPro.DeviceSupport.BasicTriList trilist, uint joinStart, string joinMapKey)
@@ -332,5 +354,7 @@ namespace PanasonicCameraEpi
         }
 
         #endregion
+
+        public RoutingPortCollection<RoutingOutputPort> OutputPorts { get; private set; }
     }
 }
