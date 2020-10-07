@@ -13,12 +13,10 @@ namespace PanasonicCameraEpi
         {
             return JsonConvert.DeserializeObject<PanasonicCameraPropsConfig>(config.Properties.ToString());
         }
-
-        /*
+   
         [JsonProperty("control")]
-        public ControlPropertiesConfig Control { get; set; }
-        */
-
+        public PanasonicControlPropertiesConfig Control { get; set; }
+        
         public PanasonicCameraPropsConfig()
         {
             Presets = new List<PanasonicCameraPreset>();
@@ -33,5 +31,17 @@ namespace PanasonicCameraEpi
         public int PanSpeed { get; set; }
         public int ZoomSpeed { get; set; }
         public int TiltSpeed { get; set; }
+    }
+
+    public class PanasonicControlPropertiesConfig
+    {
+        public string Method { get; set; }
+        public PanasonicControlPropertiesDetails TcpSshProperties { get; set; }
+    }
+
+    public class PanasonicControlPropertiesDetails
+    {
+        public string Address { get; set; }
+        public int Port { get; set; }
     }
 }
