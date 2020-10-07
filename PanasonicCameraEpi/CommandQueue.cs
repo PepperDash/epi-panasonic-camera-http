@@ -19,7 +19,7 @@ namespace PanasonicCameraEpi
 
         public bool Disposed { get; private set; }
 
-        public CommandQueue(IBasicCommunication coms)
+        protected CommandQueue(IBasicCommunication coms)
         {
             _cmdQueue = new CrestronQueue<string>();
             _worker = new Thread(ProcessCmd, coms, Thread.eThreadStartOptions.Running);

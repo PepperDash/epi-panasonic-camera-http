@@ -1,23 +1,25 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Newtonsoft.Json.Linq;
 using PepperDash.Essentials.Bridges;
 using PepperDash.Essentials.Core.Config;
 using PepperDash.Essentials.Core;
+using PepperDash.Essentials.Core.Devices;
 using PepperDash.Essentials.Devices.Common.Cameras;
 using PepperDash.Core;
 
 namespace PanasonicCameraEpi
 {
-    public class PanasonicCamera : CameraBase, IHasCameraPtzControl, IHasCameraOff, ICommunicationMonitor, IBridge, IRoutingSource
+    public class PanasonicCamera : ReconfigurableDevice, IHasCameraPtzControl, IHasCameraOff, ICommunicationMonitor, IBridge, IRoutingSource
     {
         private readonly StatusMonitorBase _monitor;
         private readonly PanasonicCmdBuilder _cmd;
         private readonly PanasonicResponseHandler _responseHandler;
         private readonly CommandQueue _queue;
-
+        private readonly Dictionary<uint, PanasonicCameraPreset> _presets;
+ 
         public bool IsPoweredOn { get; private set; }
-        public IEnumerable<PanasonicCameraPreset> Presets { get; private set; }
         public Dictionary<uint, StringFeedback> PresetNamesFeedbacks { get; private set; }
         public IntFeedback NumberOfPresetsFeedback { get; private set; }
         public StringFeedback NameFeedback { get; private set; }
@@ -34,69 +36,46 @@ namespace PanasonicCameraEpi
 
         public static PanasonicCamera BuildDevice(DeviceConfig config)
         {
-            var method = config.Properties["control"].Value<string>("method");
+            var cameraConfig = PanasonicCameraPropsConfig.FromDeviceConfig(config);
+            if (!cameraConfig.Control.Method.Equals("http", StringComparison.OrdinalIgnoreCase))
+                throw new NotSupportedException("No valid control method found");
 
-            if (method == null)
-            {
-                Debug.Console(0, Debug.ErrorLogLevel.Warning, "No valid control method found");
-                throw new NullReferenceException("No valid control method found");
-            }
+            var client = new GenericHttpClient(string.Format("{0}-httpClient", config.Key), config.Name,
+                cameraConfig.Control.TcpSshProperties.Address);
 
-            IBasicCommunication comms;
+            DeviceManager.AddDevice(client);
 
-            if (method.Equals("http", StringComparison.OrdinalIgnoreCase))
-            {
-                try
-                {
-                    var client = new GenericHttpClient(string.Format("{0}-httpClient", config.Key), config.Name,
-                        config.Properties["control"]["tcpSshProperties"].Value<string>("address"));
-
-                    comms = client; 
-					
-                    DeviceManager.AddDevice(comms);
-                }
-                catch (NullReferenceException)
-                {
-                    Debug.Console(0, Debug.ErrorLogLevel.Warning, "Hostname or address not found");
-                    throw;
-                }
-            }
-            else
-            {
-                comms = CommFactory.CreateCommForDevice(config);
-            }
-
-            return new PanasonicCamera(comms, config);
+            return new PanasonicCamera(client, config);
         }
 
         public PanasonicCamera(IBasicCommunication comms, DeviceConfig config)
-            : base(config.Key, config.Name)
+            : base(config)
         {
-            Capabilities = eCameraCapabilities.Pan | eCameraCapabilities.Tilt | eCameraCapabilities.Zoom | eCameraCapabilities.Focus;
+            OutputPorts = new RoutingPortCollection<RoutingOutputPort>();
  
             var cameraConfig = PanasonicCameraPropsConfig.FromDeviceConfig(config);
 
 			_responseHandler = new PanasonicResponseHandler();
 
-            var monitorConfig = cameraConfig.CommunicationMonitor ??
-                                new CommunicationMonitorConfig
-                                {
-                                    PollInterval = 60000,
-                                    TimeToWarning = 180000,
-                                    TimeToError = 300000,
-                                    PollString = "cgi-bin/aw_ptz?cmd=%23O&res=1"
-                                };
+            if (cameraConfig.CommunicationMonitor == null)
+                cameraConfig.CommunicationMonitor = new CommunicationMonitorConfig()
+                {
+                    PollInterval = 60000,
+                    TimeToWarning = 180000,
+                    TimeToError = 300000,
+                    PollString = "cgi-bin/aw_ptz?cmd=%23O&res=1"
+                };
 
             var tempClient = comms as GenericHttpClient;
             if(tempClient == null) 
             {
-                _monitor = new GenericCommunicationMonitor(this, tempClient, monitorConfig);
+                _monitor = new GenericCommunicationMonitor(this, tempClient, cameraConfig.CommunicationMonitor);
                 tempClient.TextReceived += _responseHandler.HandleResponseReceeved;
-                throw new NotImplementedException("Need to create a command queue for serial");
+                    throw new NotImplementedException("Need to create a command queue for serial");
 			}
 			else
             {
-                _monitor = new PanasonicHttpCameraMonitor(this, tempClient, monitorConfig);
+                _monitor = new PanasonicHttpCameraMonitor(this, tempClient, cameraConfig.CommunicationMonitor);
                 var queue = new HttpCommandQueue(comms);
                 queue.ResponseReceived += _responseHandler.HandleResponseReceived;
                 _queue = queue;
@@ -104,7 +83,7 @@ namespace PanasonicCameraEpi
 
             _cmd = new PanasonicCmdBuilder(12, 25, 12);
 
-            Presets = cameraConfig.Presets.OrderBy(x => x.Id);
+            _presets = cameraConfig.Presets.ToDictionary(x => (uint)x.Id);
 
             AddPostActivationAction(() =>
                 {
@@ -162,7 +141,16 @@ namespace PanasonicCameraEpi
             NameFeedback = new StringFeedback(() => Name);
             NameFeedback.FireUpdate();
 
-            NumberOfPresetsFeedback = new IntFeedback(() => Presets.Count());
+            for (uint x = 1; x <= 10; x++)
+            {
+                var index = x;
+                if (_presets.ContainsKey(index))
+                    continue;
+
+                _presets.Add(index, new PanasonicCameraPreset() {Id = (int) index, Name = String.Empty});
+            }
+
+            NumberOfPresetsFeedback = new IntFeedback(() => _presets.Values.Count(x => !String.IsNullOrEmpty(x.Name)));
             NumberOfPresetsFeedback.FireUpdate();
 
             PanSpeedFeedback = new IntFeedback(() => PanSpeed);
@@ -173,12 +161,10 @@ namespace PanasonicCameraEpi
             TiltSpeedFeedback.FireUpdate();
             ZoomSpeedFeedback.FireUpdate();
 
-            PresetNamesFeedbacks = Presets.ToDictionary(x => (uint)x.Id, x => new StringFeedback(() => x.Name));
+            PresetNamesFeedbacks = _presets.ToDictionary(x => x.Key, x => new StringFeedback(() => x.Value.Name));
 
             foreach (var feedback in PresetNamesFeedbacks)
-            {
                 feedback.Value.FireUpdate();
-            }
 
             CameraIsOffFeedback = new BoolFeedback(() => !IsPoweredOn);
             CameraIsOffFeedback.FireUpdate(); 
@@ -267,6 +253,7 @@ namespace PanasonicCameraEpi
         #endregion
 
         #region IHasCameraOff Members
+
         public BoolFeedback CameraIsOffFeedback { get; private set; }
 
         public void CameraOn()
@@ -315,6 +302,29 @@ namespace PanasonicCameraEpi
             _queue.EnqueueCmd(_cmd.PresetSaveCommand(preset));
         }
 
+        public void UpdatePresetName(int presetId, string name)
+        {
+            if (String.IsNullOrEmpty(name))
+                return;
+
+            PanasonicCameraPreset preset;
+            if (!_presets.TryGetValue((uint)presetId, out preset))
+                throw new ArgumentException("preset id does not exist");
+
+            preset.Name = name;
+
+            foreach (var feedback in PresetNamesFeedbacks)
+                feedback.Value.FireUpdate();
+            
+            NumberOfPresetsFeedback.FireUpdate();
+
+            var props = PanasonicCameraPropsConfig.FromDeviceConfig(Config);
+            props.Presets = _presets.Values.ToList();
+
+            Config.Properties = JObject.FromObject(props);
+            SetConfig(Config);
+        }
+
         #region IBridge Members
 
         public void LinkToApi(Crestron.SimplSharpPro.DeviceSupport.BasicTriList trilist, uint joinStart, string joinMapKey)
@@ -332,5 +342,7 @@ namespace PanasonicCameraEpi
         }
 
         #endregion
+
+        public RoutingPortCollection<RoutingOutputPort> OutputPorts { get; private set; }
     }
 }

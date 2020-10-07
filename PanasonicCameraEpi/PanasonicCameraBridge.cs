@@ -78,7 +78,8 @@ namespace PanasonicCameraEpi
 		        var saveJoin = joinMap.PresetSaveStart + presetNumber - 1;				
                 trilist.SetSigHeldAction(recallJoin, 5000, () => cameraLocal.SavePreset((int) presetNumber), () => cameraLocal.RecallPreset((int) presetNumber));
                 trilist.SetSigTrueAction(saveJoin, () => cameraLocal.SavePreset((int)presetNumber));
-            }			
+	            trilist.SetStringSigAction(recallJoin, s => cameraLocal.UpdatePresetName((int) presetNumber, s));
+	        }			
         }
     }
 }
