@@ -33,7 +33,9 @@ jobs:
         shell: powershell
         env:
           TAG_NAME: ${{ github.event.release.tag_name }}
-        run: Write-Output "::set-env name=VERSION::$($Env:TAG_NAME)"
+        run: 
+          echo "{name}=VERSION" >> $GITHUB_ENV
+        # Write-Output "::set-env name=VERSION::$($Env:TAG_NAME)"
       # Use the version number to set the version of the assemblies
       - name: Update AssemblyInfo.cs
         shell: powershell
