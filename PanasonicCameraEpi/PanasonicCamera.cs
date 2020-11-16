@@ -1,17 +1,20 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Crestron.SimplSharp.Net.Http;
 using Newtonsoft.Json.Linq;
+using Crestron.SimplSharpPro.DeviceSupport;
 using PepperDash.Essentials.Bridges;
 using PepperDash.Essentials.Core.Config;
 using PepperDash.Essentials.Core;
+using PepperDash.Essentials.Core.Bridges;
 using PepperDash.Essentials.Core.Devices;
 using PepperDash.Essentials.Devices.Common.Cameras;
 using PepperDash.Core;
 
 namespace PanasonicCameraEpi
 {
-    public class PanasonicCamera : ReconfigurableDevice, IHasCameraPtzControl, IHasCameraOff, ICommunicationMonitor, IBridge, IRoutingSource
+    public class PanasonicCamera : ReconfigurableBridgableDevice, IHasCameraPtzControl, IHasCameraOff, ICommunicationMonitor, IRoutingSource
     {
         private readonly StatusMonitorBase _monitor;
         private readonly PanasonicCmdBuilder _cmd;
@@ -29,6 +32,8 @@ namespace PanasonicCameraEpi
         public IntFeedback ZoomSpeedFeedback { get; private set; }
         public IntFeedback TiltSpeedFeedback { get; private set; }
 
+
+        /*
         public static void LoadPlugin()
         {
             DeviceFactory.AddFactoryForType("panasonicHttpCamera", BuildDevice);
@@ -47,6 +52,7 @@ namespace PanasonicCameraEpi
 
             return new PanasonicCamera(client, config);
         }
+        */
 
         public PanasonicCamera(IBasicCommunication comms, DeviceConfig config)
             : base(config)
@@ -327,10 +333,83 @@ namespace PanasonicCameraEpi
 
         #region IBridge Members
 
-        public void LinkToApi(Crestron.SimplSharpPro.DeviceSupport.BasicTriList trilist, uint joinStart, string joinMapKey)
+        public override void LinkToApi(BasicTriList trilist, uint joinStart, string joinMapKey, EiscApiAdvanced bridge)
         {
-            this.LinkToApiExt(trilist, joinStart, joinMapKey);
+            var joinMap = new PanasonicCameraJoinMap(joinStart);
+
+            if (bridge != null)
+                bridge.AddJoinMap(String.Format("{0}--JoinMap", Key), joinMap);
+
+            NameFeedback.LinkInputSig(trilist.StringInput[joinMap.DeviceName.JoinNumber]);
+            NumberOfPresetsFeedback.LinkInputSig(trilist.UShortInput[joinMap.NumberOfPresets.JoinNumber]);
+            CameraIsOffFeedback.LinkInputSig(trilist.BooleanInput[joinMap.PowerOff.JoinNumber]);
+            CameraIsOffFeedback.LinkComplementInputSig(trilist.BooleanInput[joinMap.PowerOn.JoinNumber]);
+            IsOnlineFeedback.LinkInputSig(trilist.BooleanInput[joinMap.IsOnline.JoinNumber]);
+            PanSpeedFeedback.LinkInputSig(trilist.UShortInput[joinMap.PanSpeed.JoinNumber]);
+            TiltSpeedFeedback.LinkInputSig(trilist.UShortInput[joinMap.TiltSpeed.JoinNumber]);
+            ZoomSpeedFeedback.LinkInputSig(trilist.UShortInput[joinMap.ZoomSpeed.JoinNumber]);
+
+            //camera.ComsFeedback.LinkInputSig(trilist.StringInput[joinMap.DeviceComs]);
+            trilist.SetStringSigAction(joinMap.DeviceComs.JoinNumber, SendCustomCommand);
+
+            trilist.SetBoolSigAction(joinMap.PanLeft.JoinNumber, sig =>
+            {
+                if (sig) PanLeft();
+                else PanStop();
+            });
+            trilist.SetBoolSigAction(joinMap.PanRight.JoinNumber, sig =>
+            {
+                if (sig) PanRight();
+                else PanStop();
+            });
+            trilist.SetBoolSigAction(joinMap.TiltUp.JoinNumber, sig =>
+            {
+                if (sig) TiltUp();
+                else TiltStop();
+            });
+            trilist.SetBoolSigAction(joinMap.TiltDown.JoinNumber, sig =>
+            {
+                if (sig) TiltDown();
+                else TiltStop();
+            });
+            trilist.SetBoolSigAction(joinMap.ZoomIn.JoinNumber, sig =>
+            {
+                if (sig) ZoomIn();
+                else ZoomStop();
+            });
+            trilist.SetBoolSigAction(joinMap.ZoomOut.JoinNumber, sig =>
+            {
+                if (sig) ZoomOut();
+                else ZoomStop();
+            });
+
+            trilist.SetSigTrueAction(joinMap.PowerOn.JoinNumber, CameraOn);
+            trilist.SetSigTrueAction(joinMap.PowerOff.JoinNumber, CameraOff);
+            trilist.SetSigTrueAction(joinMap.PrivacyOn.JoinNumber, PositionPrivacy);
+            trilist.SetSigTrueAction(joinMap.PrivacyOff.JoinNumber, () => RecallPreset(1));
+            trilist.SetSigTrueAction(joinMap.Home.JoinNumber, PositionHome);
+
+            trilist.SetUShortSigAction(joinMap.PanSpeed.JoinNumber, panSpeed => PanSpeed = panSpeed);
+            trilist.SetUShortSigAction(joinMap.ZoomSpeed.JoinNumber, zoomSpeed => ZoomSpeed = zoomSpeed);
+            trilist.SetUShortSigAction(joinMap.TiltSpeed.JoinNumber, tiltSpeed => TiltSpeed = tiltSpeed);
+
+            foreach (var preset in PresetNamesFeedbacks)
+            {
+                Debug.Console(2, "foreach: preset.Key: {0} preset.Value: {1}", preset.Key, preset.Value);
+                var presetNumber = preset.Key;
+                var nameJoin = joinMap.PresetName.JoinNumber + presetNumber - 1;
+                var cameraLocal = this;
+                preset.Value.LinkInputSig(trilist.StringInput[nameJoin]);
+                preset.Value.FireUpdate();
+
+                var recallJoin = joinMap.PresetRecall.JoinNumber + presetNumber - 1;
+                var saveJoin = joinMap.PresetSave.JoinNumber + presetNumber - 1;
+                trilist.SetSigHeldAction(recallJoin, 5000, () => cameraLocal.SavePreset((int)presetNumber), () => cameraLocal.RecallPreset((int)presetNumber));
+                trilist.SetSigTrueAction(saveJoin, () => cameraLocal.SavePreset((int)presetNumber));
+                trilist.SetStringSigAction(recallJoin, s => cameraLocal.UpdatePresetName((int)presetNumber, s));
+            }	
         }
+
 
         #endregion
 

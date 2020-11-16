@@ -9,10 +9,9 @@ on:
       - dev*
 
 env:
-  # solution path needs slashes (use \). When solution file name and path are put together, it should be a valid path
-  # If Solution is in repo root, leave SOLUTION_PATH empty
+  # solution path doesn't need slashes unless there it is multiple folders deep
   # solution name does not include extension. .sln is assumed
-  SOLUTION_PATH: \
+  SOLUTION_PATH: 
   SOLUTION_FILE: epi-panasonic-camera
   # Do not edit this, we're just creating it here
   VERSION: 0.0.0-buildtype-buildnumber

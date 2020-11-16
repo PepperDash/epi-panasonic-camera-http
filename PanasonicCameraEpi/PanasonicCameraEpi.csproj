@@ -48,20 +48,20 @@
   <ItemGroup>
     <Reference Include="Essentials Devices Common, Version=1.4.7348.38758, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\Essentials-Builds\Essentials Devices Common.dll</HintPath>
+      <HintPath>..\packages\PepperDashEssentials\lib\net35\Essentials Devices Common.dll</HintPath>
     </Reference>
     <Reference Include="mscorlib" />
     <Reference Include="PepperDashEssentials, Version=1.4.32.38764, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\Essentials-Builds\PepperDashEssentials.dll</HintPath>
+      <HintPath>..\packages\PepperDashEssentials\lib\net35\PepperDashEssentials.dll</HintPath>
     </Reference>
     <Reference Include="PepperDash_Core, Version=1.0.31.23583, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\Essentials-Builds\PepperDash_Core.dll</HintPath>
+      <HintPath>..\packages\PepperDashEssentials\lib\net35\PepperDash_Core.dll</HintPath>
     </Reference>
     <Reference Include="PepperDash_Essentials_Core, Version=1.4.32.38755, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\Essentials-Builds\PepperDash_Essentials_Core.dll</HintPath>
+      <HintPath>..\packages\PepperDashEssentials\lib\net35\PepperDash_Essentials_Core.dll</HintPath>
     </Reference>
     <Reference Include="SimplSharpCustomAttributesInterface, Version=1.0.0.0, Culture=neutral, PublicKeyToken=1099c178b3b54c3b, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
@@ -92,11 +92,11 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="CommandQueue.cs" />
+    <Compile Include="DeviceFactory.cs" />
     <Compile Include="HttpCommandQueue.cs" />
     <Compile Include="PanasonicCameraMonitor.cs" />
     <Compile Include="PanasonicResponseHandler.cs" />
     <Compile Include="PanasonicCamera.cs" />
-    <Compile Include="PanasonicCameraBridge.cs" />
     <Compile Include="PanasonicCameraExtensions.cs" />
     <Compile Include="PanasonicCameraJoinMap.cs" />
     <Compile Include="PanasonicCameraPreset.cs" />
