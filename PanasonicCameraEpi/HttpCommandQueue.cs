@@ -20,7 +20,7 @@ namespace PanasonicCameraEpi
 
         }
 
-        protected override object ProcessCmd(object obj)
+        protected override object ProcessQueue(object obj)
         {
             var client = obj as GenericHttpClient;
             if (client == null)

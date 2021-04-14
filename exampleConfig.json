@@ -6,7 +6,7 @@
     "type": "panasonicHttpCamera",
     "properties": {
         "control": {
-            "type": "http",
+            "method": "http",
             "tcpSshProperties": {
                 "address": "192.168.10.21",
                 "port": 0
