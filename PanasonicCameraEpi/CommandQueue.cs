@@ -22,8 +22,7 @@ namespace PanasonicCameraEpi
         protected CommandQueue(IBasicCommunication coms)
         {
             _cmdQueue = new CrestronQueue<string>();
-            _worker = new Thread(ProcessCmd, coms, Thread.eThreadStartOptions.Running);
-            _worker.Name = coms.Key + "-Thread";
+            _worker = new Thread(ProcessQueue, coms, Thread.eThreadStartOptions.Running) {Name = coms.Key + "-Thread"};
             Key = coms.Key;
 
             CrestronEnvironment.ProgramStatusEventHandler += programEvent =>
@@ -31,15 +30,18 @@ namespace PanasonicCameraEpi
                 if (programEvent != eProgramStatusEventType.Stopping)
                     return;
 
-                Debug.Console(1, coms, "Shutting down the coms processor...");
+                _cmdQueue.Clear();
                 Dispose();
             };
         }
 
-        protected abstract object ProcessCmd(object obj);
+        protected abstract object ProcessQueue(object obj);
 
         public void EnqueueCmd(string cmd)
         {
+            if (Disposed)
+                return;
+
             _cmdQueue.Enqueue(cmd);
             _wh.Set();
         }
@@ -60,7 +62,7 @@ namespace PanasonicCameraEpi
             if (disposing)
             {
                 EnqueueCmd(null);
-                _worker.Join();
+                _worker.Abort();
                 _wh.Close();
             }
 
