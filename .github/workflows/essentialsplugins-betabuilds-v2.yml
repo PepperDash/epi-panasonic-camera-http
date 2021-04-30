@@ -1,17 +1,18 @@
-name: Release Build Using Docker
+name: Branch Build Using Docker
 
 on:
-  release:
-    types:
-      - created
+  push:
     branches:
-      - main
+      - feature/*
+      - hotfix/*
+      - release/*
+      - dev*
 
 env:
   # Do not edit this, we're just creating it here
   VERSION: 0.0.0-buildtype-buildnumber
   # Defaults to debug for build type
-  BUILD_TYPE: Release
+  BUILD_TYPE: Debug
   # Defaults to master as the release branch.  Change as necessary
   RELEASE_BRANCH: main
 jobs:
@@ -25,14 +26,58 @@ jobs:
         uses: actions/checkout@v2
         with:
           fetch-depth: 0
+      # Fetch all tags
+      - name: Fetch tags
+        run: git fetch --tags
+      # Generate the appropriate version number
       - name: Set Version Number
         id: setVersionNumber
         shell: powershell
-        env:
-          TAG_NAME: ${{ github.event.release.tag_name }}
         run: |
-          echo "VERSION=$($Env:TAG_NAME)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          echo "::set-output name=version::$($Env:TAG_NAME)"
+          $latestVersions = $(git tag --merged origin/main)
+          $latestVersion = [version]"0.0.0"
+          Foreach ($version in $latestVersions) {
+            Write-Host $version
+            try {
+              if (([version]$version) -ge $latestVersion) {
+                $latestVersion = $version
+                Write-Host "Setting latest version to: $latestVersion"
+              }
+            }
+            catch {
+              Write-Host "Unable to convert $($version). Skipping"
+              continue;
+            }
+          }
+
+          $newVersion = [version]$latestVersion
+          $phase = ""
+          $newVersionString = ""
+          switch -regex ($Env:GITHUB_REF) {
+            '^refs\/heads\/main*.' {
+              $newVersionString = "{0}.{1}.{2}" -f $newVersion.Major, $newVersion.Minor, $newVersion.Build
+            }
+            '^refs\/heads\/feature\/*.' {
+              $phase = 'alpha'
+              $newVersionString = "{0}.{1}.{2}-{3}-{4}" -f $newVersion.Major, $newVersion.Minor, ($newVersion.Build + 1), $phase, $Env:GITHUB_RUN_NUMBER
+            }
+            '^refs\/heads\/release\/*.' {
+              $splitRef = $Env:GITHUB_REF -split "/"
+              $version = [version]($splitRef[-1] -replace "v", "")
+              $phase = 'rc'
+              $newVersionString = "{0}.{1}.{2}-{3}-{4}" -f $version.Major, $version.Minor, $version.Build, $phase, $Env:GITHUB_RUN_NUMBER
+            }
+            '^refs\/heads\/dev*.' {
+              $phase = 'beta'
+              $newVersionString = "{0}.{1}.{2}-{3}-{4}" -f $newVersion.Major, $newVersion.Minor, ($newVersion.Build + 1), $phase, $Env:GITHUB_RUN_NUMBER
+            }
+            '^refs\/heads\/hotfix\/*.' {
+              $phase = 'hotfix'
+              $newVersionString = "{0}.{1}.{2}-{3}-{4}" -f $newVersion.Major, $newVersion.Minor, ($newVersion.Build + 1), $phase, $Env:GITHUB_RUN_NUMBER
+            }
+          }      
+          echo "VERSION=$newVersionString" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          echo "::set-output name=version::$newVersionString"
       # Use the version number to set the version of the assemblies
       - name: Update AssemblyInfo.cs
         shell: powershell
@@ -41,7 +86,7 @@ jobs:
           Param ([string]$Version)
           #$fullVersion = $Version
           $baseVersion = [regex]::Match($Version, "(\d+.\d+.\d+).*").captures.groups[1].value
-          $NewAssemblyVersion = 'AssemblyVersion("‘ + $baseVersion + ‘.*")'
+          $NewAssemblyVersion = 'AssemblyVersion("' + $baseVersion + '.*")'
           Write-Output "AssemblyVersion = $NewAssemblyVersion"
           $NewAssemblyInformationalVersion = 'AssemblyInformationalVersion("' + $Version + '")'
           Write-Output "AssemblyInformationalVersion = $NewAssemblyInformationalVersion"
@@ -59,24 +104,26 @@ jobs:
             }
           }
 
-          function Update-AllAssemblyInfoFiles ( $Env:VERSION ) {
+          function Update-AllAssemblyInfoFiles ( $version ) {
               foreach ($file in "AssemblyInfo.cs", "AssemblyInfo.vb" ) {
                   get-childitem -Path $Env:GITHUB_WORKSPACE -recurse | Where-Object { $_.Name -eq $file } | Update-SourceVersion $version ;
               }
           }
 
           # validate arguments
-          $r = [System.Text.RegularExpressions.Regex]::Match($args[0], "\d+\.\d+\.\d+.*");
+          $r = [System.Text.RegularExpressions.Regex]::Match($Env:VERSION, "\d+\.\d+\.\d+.*");
           if ($r.Success) {
-              Write-Output "Updating Assembly Version to $args ...";
-              Update-AllAssemblyInfoFiles $args[0];
+              Write-Output "Updating Assembly Version to $Env:VERSION ...";
+              Update-AllAssemblyInfoFiles $Env:VERSION;
           }
           else {
               Write-Output " ";
-              Write-Output "Error: Input version does not match x.y.z format!"
+              Write-Output "Error: Input version $Env:VERSION does not match x.y.z format!"
               Write-Output " ";
               Write-Output "Unable to apply version to AssemblyInfo.cs files";
           }
+      - name: add PepperDash Eng Feed 
+        run: nuget sources add -name github -source https://nuget.pkg.github.com/pepperdash-engineering/index.json -username ${{ secrets.GH_PACKAGE_USER }} -password ${{ secrets.GH_PACKAGE_PASSWORD  }}
       - name: restore Nuget Packages
         run: nuget install .\packages.config -OutputDirectory .\packages -ExcludeVersion
       # Set the SOLUTION_PATH
@@ -151,12 +198,22 @@ jobs:
         with:
           name: Build
           path: ./${{ env.SOLUTION_FILE}}-${{ env.VERSION}}.zip
+      # Create the release on the source repo
+      - name: Create Release
+        id: create_release
+        uses: fleskesvor/create-release@feature/support-target-commitish
+        with:
+          tag_name: ${{ env.VERSION  }}
+          release_name: ${{ env.VERSION }}
+          prerelease: ${{contains('debug', env.BUILD_TYPE)}}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       # Upload the build package to the release
       - name: Upload Release Package
         id: upload_release
         uses: actions/upload-release-asset@v1
         with:
-          upload_url: ${{ github.event.release.upload_url }}
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: ./${{ env.SOLUTION_FILE}}-${{ env.VERSION}}.zip
           asset_name: ${{ env.SOLUTION_FILE}}-${{ env.VERSION}}.zip
           asset_content_type: application/zip
