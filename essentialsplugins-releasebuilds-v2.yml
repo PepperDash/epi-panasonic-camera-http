@@ -3,7 +3,7 @@ name: Release Build Using Docker
 on:
   release:
     types:
-      - published
+      - created
     branches:
       - main
 
