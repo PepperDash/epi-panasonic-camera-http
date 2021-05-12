@@ -64,6 +64,8 @@ namespace PanasonicCameraEpi
             trilist.SetUShortSigAction(joinMap.PanSpeed, panSpeed => camera.PanSpeed = panSpeed);
             trilist.SetUShortSigAction(joinMap.ZoomSpeed, zoomSpeed => camera.ZoomSpeed = zoomSpeed);
             trilist.SetUShortSigAction(joinMap.TiltSpeed, tiltSpeed => camera.TiltSpeed = tiltSpeed);
+
+			trilist.SetStringSigAction(joinMap.IPAddress, (s) => camera.SetIpAddress(s));
 			
 			foreach (var preset in camera.PresetNamesFeedbacks)
 	        {

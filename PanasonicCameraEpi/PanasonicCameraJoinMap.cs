@@ -31,6 +31,7 @@ namespace PanasonicCameraEpi
 
         //serial
         public uint DeviceName { get; private set; }
+		public uint IPAddress { get; private set; }
         public uint PresetNameStart { get; private set; }
         public uint DeviceComs { get; private set; }
 
@@ -56,9 +57,10 @@ namespace PanasonicCameraEpi
             TiltSpeed = 2;
             ZoomSpeed = 3;
             NumberOfPresets = 11;
-
+ 
             DeviceName = 1;
-            PresetNameStart = 11;
+			IPAddress = 2; 
+			PresetNameStart = 11;
             DeviceComs = 50;
         }
 

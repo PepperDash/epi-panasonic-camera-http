@@ -18,7 +18,7 @@ namespace PanasonicCameraEpi
         private readonly PanasonicResponseHandler _responseHandler;
         private readonly CommandQueue _queue;
         private readonly Dictionary<uint, PanasonicCameraPreset> _presets;
- 
+
         public bool IsPoweredOn { get; private set; }
         public Dictionary<uint, StringFeedback> PresetNamesFeedbacks { get; private set; }
         public IntFeedback NumberOfPresetsFeedback { get; private set; }
@@ -29,6 +29,7 @@ namespace PanasonicCameraEpi
         public IntFeedback ZoomSpeedFeedback { get; private set; }
         public IntFeedback TiltSpeedFeedback { get; private set; }
 
+		/*
         public static void LoadPlugin()
         {
             DeviceFactory.AddFactoryForType("panasonicHttpCamera", BuildDevice);
@@ -47,13 +48,14 @@ namespace PanasonicCameraEpi
 
             return new PanasonicCamera(client, config);
         }
+		 */
 
         public PanasonicCamera(IBasicCommunication comms, DeviceConfig config)
             : base(config)
         {
             OutputPorts = new RoutingPortCollection<RoutingOutputPort>();
- 
-            var cameraConfig = PanasonicCameraPropsConfig.FromDeviceConfig(config);
+
+			var cameraConfig = PanasonicCameraPropsConfig.FromDeviceConfig(config);
 
 			_responseHandler = new PanasonicResponseHandler();
 
@@ -67,6 +69,7 @@ namespace PanasonicCameraEpi
                 };
 
             var tempClient = comms as GenericHttpClient;
+			
             if(tempClient == null) 
             {
                 _monitor = new GenericCommunicationMonitor(this, tempClient, cameraConfig.CommunicationMonitor);
@@ -109,7 +112,6 @@ namespace PanasonicCameraEpi
                 PanSpeed = cameraConfig.PanSpeed;
             });
         }
-
         public override bool CustomActivate()
         {
             SetupFeedbacks();
@@ -302,6 +304,33 @@ namespace PanasonicCameraEpi
             _queue.EnqueueCmd(_cmd.PresetSaveCommand(preset));
         }
 
+		/// <summary>
+		/// Sets the IP address used by the plugin 
+		/// </summary>
+		/// <param name="hostname">string</param>
+		public void SetIpAddress(string address)
+		{
+			try
+			{
+				if (address.Length > 2 & Config.Properties["control"]["tcpSshProperties"]["address"].ToString() != address)
+				{
+					Debug.Console(2, this, "Changing IPAddress: {0}", address);
+
+					Config.Properties["control"]["tcpSshProperties"]["address"] = address;
+					Debug.Console(2, this, "{0}", Config.Properties.ToString());
+					CustomSetConfig(Config);
+					var tempClient = DeviceManager.GetDeviceForKey(string.Format("{0}-httpClient", this.Key)) as GenericHttpClient;
+					tempClient.Client.HostName = address;
+				}
+			}
+			catch (Exception e)
+			{
+				if (Debug.Level == 2)
+					Debug.Console(2, this, "Error SetIpAddress: '{0}'", e);
+			}
+		}
+
+	
         public void UpdatePresetName(int presetId, string name)
         {
             if (String.IsNullOrEmpty(name))
