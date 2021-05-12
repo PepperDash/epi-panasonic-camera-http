@@ -46,12 +46,7 @@ namespace PanasonicCameraEpi
 
                         Debug.Console(1, client, "Dispatching request: {0}", request.Url.PathAndParams);
 
-                        var response = client.Client.Dispatch(request);
-                        using (response)
-                        {
-                            if (!String.IsNullOrEmpty(response.ContentString))
-                                OnResponseReceived(response);
-                        }
+                        client.Client.DispatchAsync(request, OnResponseReceived);
                     }
                     catch (Exception ex)
                     {
@@ -64,13 +59,31 @@ namespace PanasonicCameraEpi
             return null;
         }
 
-        private void OnResponseReceived(HttpClientResponse response)
+        private void OnResponseReceived(HttpClientResponse response, HTTP_CALLBACK_ERROR error)
         {
-            var handler = ResponseReceived;
-            if (handler == null)
-                return;
+            try
+            {
+                Debug.Console(1, this, "Panasonic camera client response code: {0}", response.Code);
+                if (error != HTTP_CALLBACK_ERROR.COMPLETED)
+                {
+                    Debug.Console(1, this, "Panasonic camera client callback error: {0}", error);
+                    return;
+                }
+                if (response.Code < 200 || response.Code >= 300)
+                {
+                    Debug.Console(1, this, "Panasonic camera client callback http code error: {0}", response.Code);
+                    return;
+                }
 
-            handler.Invoke(this, new GenericHttpClientEventArgs(response.ContentString, response.ResponseUrl, HTTP_CALLBACK_ERROR.COMPLETED));
+                if (ResponseReceived == null)
+                    return;
+                ResponseReceived.Invoke(this, new GenericHttpClientEventArgs(response.ContentString, response.ResponseUrl, HTTP_CALLBACK_ERROR.COMPLETED));
+
+            }
+            catch (Exception ex)
+            {
+                Debug.Console(1, this, "Panasonic camera client callback exception: {0}", ex.Message);
+            }
         }
     }
 }
