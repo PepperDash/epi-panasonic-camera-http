@@ -68,12 +68,11 @@ namespace PanasonicCameraEpi
                     PollString = "cgi-bin/aw_ptz?cmd=%23O&res=1"
                 };
 
-            var tempClient = comms as GenericHttpClient;
-			
+            var tempClient = comms as GenericHttpClient;	
             if(tempClient == null) 
             {
-                _monitor = new GenericCommunicationMonitor(this, tempClient, cameraConfig.CommunicationMonitor);
-                tempClient.TextReceived += _responseHandler.HandleResponseReceeved;
+                _monitor = new GenericCommunicationMonitor(this, comms, cameraConfig.CommunicationMonitor);
+                comms.TextReceived += _responseHandler.HandleResponseReceeved;
                     throw new NotImplementedException("Need to create a command queue for serial");
 			}
 			else
@@ -84,8 +83,7 @@ namespace PanasonicCameraEpi
                 _queue = queue;
             }
 
-            _cmd = new PanasonicCmdBuilder(12, 25, 12);
-
+            _cmd = new PanasonicCmdBuilder(12, 25, 12, cameraConfig.HomeCommand, cameraConfig.PrivacyCommand);
             _presets = cameraConfig.Presets.ToDictionary(x => (uint)x.Id);
 
             AddPostActivationAction(() =>
@@ -296,6 +294,9 @@ namespace PanasonicCameraEpi
 
         public void RecallPreset(int preset)
         {
+            if (!IsPoweredOn)
+                _queue.EnqueueCmd(_cmd.PowerOnCommand);
+
             _queue.EnqueueCmd(_cmd.PresetRecallCommand(preset));	        
         }
 
@@ -318,7 +319,7 @@ namespace PanasonicCameraEpi
 
 					Config.Properties["control"]["tcpSshProperties"]["address"] = address;
 					Debug.Console(2, this, "{0}", Config.Properties.ToString());
-					CustomSetConfig(Config);
+                    SetConfig(Config);
 					var tempClient = DeviceManager.GetDeviceForKey(string.Format("{0}-httpClient", this.Key)) as GenericHttpClient;
 					tempClient.Client.HostName = address;
 				}
