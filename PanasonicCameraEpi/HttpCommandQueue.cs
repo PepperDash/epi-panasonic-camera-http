@@ -38,6 +38,11 @@ namespace PanasonicCameraEpi
                 }
                 if (path != null)
                 {
+                    if(string.IsNullOrEmpty(client.Client.HostName))
+                    {
+                        Debug.Console(0, client, "Panasonic camera hostname not valid");
+                        return null;
+                    }
                     try
                     {
                         var request = new HttpClientRequest();
