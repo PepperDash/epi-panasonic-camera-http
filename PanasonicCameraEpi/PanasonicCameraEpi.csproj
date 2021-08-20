@@ -46,6 +46,10 @@
     <GenerateSerializationAssemblies>off</GenerateSerializationAssemblies>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Crestron.SimplSharpPro.DeviceSupport, Version=1.0.0.0, Culture=neutral, PublicKeyToken=1099c178b3b54c3b, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\packages\PepperDashEssentials\lib\net35\Crestron.SimplSharpPro.DeviceSupport.dll</HintPath>
+    </Reference>
     <Reference Include="Essentials Devices Common, Version=1.4.7348.38758, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\packages\PepperDashEssentials\lib\net35\Essentials Devices Common.dll</HintPath>
@@ -101,7 +105,6 @@
     <Compile Include="PanasonicCameraMonitor.cs" />
     <Compile Include="PanasonicResponseHandler.cs" />
     <Compile Include="PanasonicCamera.cs" />
-    <Compile Include="PanasonicCameraBridge.cs" />
     <Compile Include="PanasonicCameraExtensions.cs" />
     <Compile Include="PanasonicCameraJoinMap.cs" />
     <Compile Include="PanasonicCameraPreset.cs" />
