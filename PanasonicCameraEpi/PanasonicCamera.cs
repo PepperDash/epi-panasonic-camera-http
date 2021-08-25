@@ -210,27 +210,27 @@ namespace PanasonicCameraEpi
             _presets = cameraConfig.Presets.ToDictionary(x => (uint)x.Id);
 
             AddPostActivationAction(() =>
-                {
-                    if (cameraConfig.ZoomSpeed == 0)
-                        return;
-
-                    ZoomSpeed = cameraConfig.ZoomSpeed;
-                });
+            {
+                if (cameraConfig.ZoomSpeed == 0)
+                  ZoomSpeed = 25;
+                else
+                  ZoomSpeed = cameraConfig.ZoomSpeed;
+            });
 
             AddPostActivationAction(() =>
             {
                 if (cameraConfig.TiltSpeed == 0)
-                    return;
-
-                TiltSpeed = cameraConfig.TiltSpeed;
+                  TiltSpeed = 25;
+                else
+                  TiltSpeed = cameraConfig.TiltSpeed;
             });
 
             AddPostActivationAction(() =>
             {
                 if (cameraConfig.PanSpeed == 0)
-                    return;
-
-                PanSpeed = cameraConfig.PanSpeed;
+                  PanSpeed = 25;
+                else
+                  PanSpeed = cameraConfig.PanSpeed;
             });
         }
         public override bool CustomActivate()
@@ -265,109 +265,7 @@ namespace PanasonicCameraEpi
         /// <param name="bridge"></param>
         public void LinkToApi(BasicTriList trilist, uint joinStart, string joinMapKey, EiscApiAdvanced bridge)
         {
-            var joinMap = new PanasonicCameraBridgeJoinMap(joinStart);
-
-            // This adds the join map to the collection on the bridge
-            if (bridge != null)
-            {
-                bridge.AddJoinMap(Key, joinMap);
-            }
-
-            var customJoins = JoinMapHelper.TryGetJoinMapAdvancedForDevice(joinMapKey);
-            if (customJoins != null)
-            {
-                joinMap.SetCustomJoinData(customJoins);
-            }
-
-            Debug.Console(1, "Linking to Trilist '{0}'", trilist.ID.ToString("X"));
-            Debug.Console(0, "Linking to Bridge Type {0}", GetType().Name);
-
-            // link joins to bridge
-            trilist.SetString(joinMap.DeviceName.JoinNumber, Name);
-
-            //ConnectFeedback.LinkInputSig(trilist.BooleanInput[joinMap.Connect.JoinNumber]);
-            //MonitorStatusFeedback.LinkInputSig(trilist.UShortInput[joinMap.Status.JoinNumber]);
-            SocketStatusFeedback.LinkInputSig(trilist.UShortInput[joinMap.Status.JoinNumber]);
-            OnlineFeedback.LinkInputSig(trilist.BooleanInput[joinMap.IsOnline.JoinNumber]);
-
-            // power
-            trilist.SetBoolSigAction(joinMap.PowerOn.JoinNumber, SetPower);
-            PowerFeedback.LinkInputSig(trilist.BooleanInput[joinMap.PowerOn.JoinNumber]);
-
-            trilist.SetBoolSigAction(joinMap.PowerOff.JoinNumber, SetPower);
-            PowerFeedback.LinkInputSig(trilist.BooleanInput[joinMap.PowerOff.JoinNumber]);
-
-            // preset
-            PresetCountFeedback.LinkInputSig(trilist.UShortInput[joinMap.PresetCount.JoinNumber]);
-            foreach (var item in PresetNameFeedbacks)
-            {
-                // preset number
-                var preset = (ushort)item.Key;
-
-                // preset names
-                var nameJoin = preset + joinMap.PresetNames.JoinNumber - 1;
-                var nameFeedback = item.Value;
-                nameFeedback.LinkInputSig(trilist.StringInput[nameJoin]);
-
-                // preset recall
-                var recallJoin = preset + joinMap.PresetRecall.JoinNumber - 1;
-                trilist.SetSigHeldAction(recallJoin, PresetSaveHoldTimeMs, () => PresetSave(preset), () => RecallPreset(preset));
-
-                // preset save/store
-                var saveJoin = preset + joinMap.PresetSave.JoinNumber - 1;
-                trilist.SetSigTrueAction(saveJoin, () => PresetSave(preset));
-            }
-
-            // home
-            trilist.SetBoolSigAction(joinMap.Home.JoinNumber, sig => Move(sig, EDirection.Home));
-
-            // pan
-            trilist.SetBoolSigAction(joinMap.PanLeft.JoinNumber, sig => Move(sig, EDirection.PanLeft));
-            trilist.SetBoolSigAction(joinMap.PanRight.JoinNumber, sig => Move(sig, EDirection.PanRight));
-            trilist.SetUShortSigAction(joinMap.PanSpeed.JoinNumber, value => SetPanSpeed(value));
-            PanSpeedFeedback.LinkInputSig(trilist.UShortInput[joinMap.PanSpeed.JoinNumber]);
-
-            // tilt
-            trilist.SetBoolSigAction(joinMap.TiltUp.JoinNumber, sig => Move(sig, EDirection.TiltUp));
-            trilist.SetBoolSigAction(joinMap.TiltDown.JoinNumber, sig => Move(sig, EDirection.TiltDown));
-            trilist.SetUShortSigAction(joinMap.TiltSpeed.JoinNumber, value => SetTiltSpeed(value));
-            PanSpeedFeedback.LinkInputSig(trilist.UShortInput[joinMap.TiltSpeed.JoinNumber]);
-
-            // zoom
-            trilist.SetBoolSigAction(joinMap.ZoomIn.JoinNumber, sig => Move(sig, EDirection.ZoomIn));
-            trilist.SetBoolSigAction(joinMap.ZoomOut.JoinNumber, sig => Move(sig, EDirection.ZoomOut));
-            trilist.SetUShortSigAction(joinMap.ZoomSpeed.JoinNumber, value => SetZoomSpeed(value));
-            PanSpeedFeedback.LinkInputSig(trilist.UShortInput[joinMap.ZoomSpeed.JoinNumber]);
-
-            // focus
-            trilist.SetBoolSigAction(joinMap.AutoFocus.JoinNumber, sig => Move(sig, EDirection.FocusAuto));
-            AutoFocusFeedback.LinkInputSig(trilist.BooleanInput[joinMap.AutoFocus.JoinNumber]);
-
-            // privacy
-            trilist.SetBoolSigAction(joinMap.PrivacyOn.JoinNumber, sig => Move(sig, EDirection.PrivacyOn));
-            trilist.SetBoolSigAction(joinMap.PrivacyOff.JoinNumber, sig => Move(sig, EDirection.PrivacyOff));
-
-            // preset - analog recall & save by number
-            trilist.SetUShortSigAction(joinMap.PresetRecall.JoinNumber, value =>
-            {
-                RecallPreset(value);
-                Debug.Console(1, this, "LinkToApi PresetRecallByNumber[{0}] => RecallPreset({1})", joinMap.PresetRecall.JoinNumber, value);
-            });
-            trilist.SetUShortSigAction(joinMap.PresetSave.JoinNumber, value =>
-            {
-                PresetSave(value);
-                Debug.Console(1, this, "LinkToApi PresetSaveByNumber[{0}] => SavePreset({1})", joinMap.PresetSave.JoinNumber, value);
-            });
-
-            UpdateFeedbacks();
-
-            // online status 
-            trilist.OnlineStatusChange += (o, a) =>
-            {
-                if (!a.DeviceOnLine) return;
-                trilist.SetString(joinMap.DeviceName.JoinNumber, Name);
-                UpdateFeedbacks();
-            };
+            LinkCameraToApi(this, trilist, joinStart, joinMapKey, bridge);
         }
 
         private void UpdateFeedbacks()
@@ -375,7 +273,7 @@ namespace PanasonicCameraEpi
             ConnectFeedback.FireUpdate();
             OnlineFeedback.FireUpdate();
             SocketStatusFeedback.FireUpdate();
-            //MonitorStatusFeedback.FireUpdate();
+            MonitorStatusFeedback.FireUpdate();
 
             PowerFeedback.FireUpdate();
             PresetCountFeedback.FireUpdate();

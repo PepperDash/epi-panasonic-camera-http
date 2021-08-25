@@ -3,11 +3,12 @@ using PepperDash.Core;
 using PepperDash.Core.WebApi.Presets;
 using PepperDash.Essentials.Core;
 using PepperDash.Essentials.Core.Config;
+using PepperDash.Essentials.Devices.Common.Cameras;
 using Newtonsoft.Json;
 
 namespace PanasonicCameraEpi
 {
-    public class PanasonicCameraPropsConfig
+    public class PanasonicCameraPropsConfig : CameraPropertiesConfig
     {
         public static PanasonicCameraPropsConfig FromDeviceConfig(DeviceConfig config)
         {
