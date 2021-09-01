@@ -23,8 +23,15 @@ namespace PanasonicCameraEpi
         public string ZoomOutCommand { get; private set; }
         public string TiltUpCommand { get; private set; }
         public string TiltDownCommand { get; private set; }
+        public string FocusCommand { get; private set; }
+        public string FocusInCommand { get; private set; }
+        public string FocusOutCommand { get; private set; }
+        public string FocusStopCommand { get; private set; }
+        public string FocusAutoOn { get; private set; }
+        public string FocusAutoOff { get; private set; }
 
-        public PanasonicCmdBuilder(int panSpeed, int zoomSpeed, int tiltSpeed)
+
+        public PanasonicCmdBuilder(int panSpeed, int zoomSpeed, int tiltSpeed, int focusSpeed)
         {
             PanStopCommand = BuildCmd("P50");
             TiltStopCommand = BuildCmd("T50");
@@ -37,6 +44,14 @@ namespace PanasonicCameraEpi
             PanSpeed = panSpeed == 0 ? 25 : panSpeed;
             ZoomSpeed = zoomSpeed == 0 ? 25 : zoomSpeed;
             TiltSpeed = tiltSpeed == 0 ? 25 : tiltSpeed;
+            FocusSpeed = focusSpeed == 0 ? 25 : focusSpeed;
+
+            FocusInCommand = BuildCmd(String.Format("F{0}", 50 - focusSpeed));
+            FocusOutCommand = BuildCmd(String.Format("F{0}", focusSpeed + 50));
+            FocusStopCommand = BuildCmd("Z50");
+            FocusAutoOff = BuildCmd("D10");
+            FocusAutoOn = BuildCmd("D11");
+
         }
 
         private int _panSpeed;
@@ -48,6 +63,18 @@ namespace PanasonicCameraEpi
                 _panSpeed = value <= 0 || value >= 50 ? 25 : value;
                 PanLeftCommand = BuildCmd(String.Format("P{0}", 50 - _panSpeed));
                 PanRightCommand = BuildCmd(String.Format("P{0}", _panSpeed + 50));
+            }
+        }
+
+        private int _focusSpeed;
+        public int FocusSpeed
+        {
+            get { return _focusSpeed; }
+            set
+            {
+                _focusSpeed = value <= 0 || value >= 50 ? 25 : value;
+                FocusInCommand = BuildCmd(String.Format("F{0}", 50 - _focusSpeed));
+                FocusOutCommand = BuildCmd(String.Format("F{0}", _focusSpeed + 50));
             }
         }
 
@@ -77,8 +104,8 @@ namespace PanasonicCameraEpi
 
         public string PresetRecallCommand(int preset)
         {
-            var command = Convert.ToString(preset - 1);
-            var formattedCommand = command.PadLeft(2, '0');
+           var command = Convert.ToString(preset - 1);
+           var formattedCommand = command.PadLeft(2, '0');
 			var cmd = BuildCmd(String.Format("R{0}", formattedCommand));			
 			Debug.Console(2, "PresetRecallCommand({0}) Cmd: {1}", preset, cmd);
 			return cmd;

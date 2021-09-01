@@ -13,7 +13,7 @@ using PepperDash.Essentials.Devices.Common.Cameras;
 
 namespace PanasonicCameraEpi
 {
-    public class PanasonicCamera : CameraBase, IHasCameraPtzControl, IHasPowerControl, ICommunicationMonitor, IRoutingSource, IHasCameraFocusControl
+    public class PanasonicCamera : CameraBase, IHasCameraPtzControl, IHasPowerControlWithFeedback, ICommunicationMonitor, IHasCameraPresets, IRoutingSource, IHasCameraFocusControl, IBridgeAdvanced
     {
         private readonly StatusMonitorBase _monitor;
         private readonly PanasonicCmdBuilder _cmd;
@@ -115,7 +115,7 @@ namespace PanasonicCameraEpi
             }
         }
 
-        public BoolFeedback PowerFeedback { get; private set; }
+        public BoolFeedback PowerIsOnFeedback { get; private set; }
         /// <summary>
         /// Power property
         /// </summary>
@@ -126,7 +126,7 @@ namespace PanasonicCameraEpi
             {
                 if (Power == value) return;
                 Power = value;
-                PowerFeedback.FireUpdate();
+                PowerIsOnFeedback.FireUpdate();
             }
         }
 
@@ -205,7 +205,7 @@ namespace PanasonicCameraEpi
                 _queue = queue;
             }
 
-            _cmd = new PanasonicCmdBuilder(12, 25, 12);
+            _cmd = new PanasonicCmdBuilder(12, 25, 12, 25);
 
             _presets = cameraConfig.Presets.ToDictionary(x => (uint)x.Id);
 
@@ -275,7 +275,7 @@ namespace PanasonicCameraEpi
             SocketStatusFeedback.FireUpdate();
             MonitorStatusFeedback.FireUpdate();
 
-            PowerFeedback.FireUpdate();
+            PowerIsOnFeedback.FireUpdate();
             PresetCountFeedback.FireUpdate();
             PanSpeedFeedback.FireUpdate();
             TiltSpeedFeedback.FireUpdate();
@@ -297,7 +297,6 @@ namespace PanasonicCameraEpi
         /// <param name="state">power on/off</param>
         public void SetPower(bool state)
         {
-            // Vaddio VISCA variant
             if (state)
                 PowerOff();
             else
@@ -316,7 +315,6 @@ namespace PanasonicCameraEpi
             {
                 case EDirection.Home:
                     {
-                        // Vaddio VISCA variant
                         if (state)
                         {
                             PositionHome();
@@ -325,7 +323,6 @@ namespace PanasonicCameraEpi
                     }
                 case EDirection.PanLeft:
                     {
-                        // Vaddio VISCA variant
                         if (state == true)
                         {
                             PanLeft();
@@ -338,7 +335,6 @@ namespace PanasonicCameraEpi
                     }
                 case EDirection.PanRight:
                     {
-                        // Vaddio VISCA variant
                         if (state == true)
                         {
                             PanRight();
@@ -351,7 +347,6 @@ namespace PanasonicCameraEpi
                     }
                 case EDirection.TiltUp:
                     {
-                        // Vaddio VISCA variant
                         if (state == true)
                         {
                             TiltUp();
@@ -364,7 +359,6 @@ namespace PanasonicCameraEpi
                     }
                 case EDirection.TiltDown:
                     {
-                        // Vaddio VISCA variant
                         if (state == true)
                         {
                             TiltDown();
@@ -377,7 +371,6 @@ namespace PanasonicCameraEpi
                     }
                 case EDirection.ZoomIn:
                     {
-                        // Vaddio VISCA variant
                         if (state == true)
                         {
                             ZoomIn();
@@ -390,7 +383,6 @@ namespace PanasonicCameraEpi
                        }
                 case EDirection.ZoomOut:
                     {
-                        // Vaddio VISCA variant
                         if (state == true)
                         {
                             ZoomOut();
@@ -403,12 +395,18 @@ namespace PanasonicCameraEpi
                     }
                 case EDirection.FocusAuto:
                     {
-                        
+                        if (state == true)
+                        {
+                            _queue.EnqueueCmd(_cmd.FocusAutoOn);
+                        }
+                        else
+                        {
+                            _queue.EnqueueCmd(_cmd.FocusAutoOff);
+                        }
                         break;
                     }
                 case EDirection.FocusNear:
                     {
-                        // Vaddio VISCA variant
                         if (state == true)
                         {
                             FocusNear();
@@ -421,7 +419,6 @@ namespace PanasonicCameraEpi
                     }
                 case EDirection.FocusFar:
                     {
-                        // Vaddio VISCA variant
                         if (state == true)
                         {
                             FocusFar();
@@ -493,8 +490,7 @@ namespace PanasonicCameraEpi
         {
             if (value <= 0 || value > PresetMax) return;
 
-            // Vaddio VISCA variant
-            RecallPreset((int)value);
+            RecallPreset(value);
         }
 
         private const int PresetSaveHoldTimeMs = 5000; // 5s
@@ -673,16 +669,6 @@ namespace PanasonicCameraEpi
             _queue.EnqueueCmd(PanasonicCmdBuilder.BuildCustomCommand(cmd));
         }
 
-        public void RecallPreset(int preset)
-        {
-            _queue.EnqueueCmd(_cmd.PresetRecallCommand(preset));	        
-        }
-
-        public void PresetSave(int preset)
-        {
-            _queue.EnqueueCmd(_cmd.PresetSaveCommand(preset));
-        }
-
 		/// <summary>
 		/// Sets the IP address used by the plugin 
 		/// </summary>
@@ -779,23 +765,44 @@ namespace PanasonicCameraEpi
 
         public void FocusFar()
         {
-            throw new NotImplementedException();
+            _queue.EnqueueCmd(_cmd.FocusOutCommand);
         }
 
         public void FocusNear()
         {
-            throw new NotImplementedException();
+            _queue.EnqueueCmd(_cmd.FocusInCommand);
         }
 
         public void FocusStop()
         {
-            throw new NotImplementedException();
+            _queue.EnqueueCmd(_cmd.FocusStopCommand);
         }
 
         public void TriggerAutoFocus()
         {
-            throw new NotImplementedException();
+            _queue.EnqueueCmd(_cmd.FocusAutoOn);
         }
+
+        #endregion
+
+        #region IHasCameraPresets Members
+
+        public void PresetSelect(int preset)
+        {
+            _queue.EnqueueCmd(_cmd.PresetRecallCommand(preset));
+        }
+
+        public void PresetStore(int preset, string description)
+        {
+            _queue.EnqueueCmd(_cmd.PresetSaveCommand(preset));
+        }
+
+        public List<CameraPreset> Presets
+        {
+            get { throw new NotImplementedException(); }
+        }
+
+        public event EventHandler<EventArgs> PresetsListHasChanged;
 
         #endregion
     }
