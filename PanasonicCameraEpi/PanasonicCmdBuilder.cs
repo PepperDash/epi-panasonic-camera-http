@@ -39,6 +39,21 @@ namespace PanasonicCameraEpi
             TiltSpeed = tiltSpeed == 0 ? 25 : tiltSpeed;
         }
 
+        public PanasonicCmdBuilder(int panSpeed, int zoomSpeed, int tiltSpeed, string homeCommand, string privacyCommand)
+        {
+            PanStopCommand = BuildCmd("P50");
+            TiltStopCommand = BuildCmd("T50");
+            ZoomStopCommand = BuildCmd("Z50");
+            PowerOnCommand = BuildCmd("O1");
+            PowerOffCommand = BuildCmd("O0");
+            HomeCommand = string.IsNullOrEmpty(homeCommand) ? BuildCmd("APC80008000") : BuildCmd(homeCommand);
+            PrivacyCommand = string.IsNullOrEmpty(privacyCommand) ? BuildCmd("APC00000000") : BuildCmd(privacyCommand);
+
+            PanSpeed = panSpeed == 0 ? 25 : panSpeed;
+            ZoomSpeed = zoomSpeed == 0 ? 25 : zoomSpeed;
+            TiltSpeed = tiltSpeed == 0 ? 25 : tiltSpeed;
+        }
+
         private int _panSpeed;
         public int PanSpeed
         {

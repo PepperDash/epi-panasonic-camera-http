@@ -52,6 +52,7 @@ namespace PanasonicCameraEpi
                         Debug.Console(1, client, "Dispatching request: {0}", request.Url.PathAndParams);
 
                         client.Client.DispatchAsync(request, OnResponseReceived);
+                        Thread.Sleep(130); //command gap of 130 recommended by documentation
                     }
                     catch (Exception ex)
                     {
@@ -82,6 +83,7 @@ namespace PanasonicCameraEpi
 
                 if (ResponseReceived == null)
                     return;
+
                 ResponseReceived.Invoke(this, new GenericHttpClientEventArgs(response.ContentString, response.ResponseUrl, HTTP_CALLBACK_ERROR.COMPLETED));
 
             }
