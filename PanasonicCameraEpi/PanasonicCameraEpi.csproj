@@ -97,12 +97,12 @@
   <ItemGroup>
     <Compile Include="CommandQueue.cs" />
     <Compile Include="HttpCommandQueue.cs" />
+    <Compile Include="PanasonicCameraBridgeJoinMap.cs" />
+    <Compile Include="PanasonicCameraFactory.cs" />
     <Compile Include="PanasonicCameraMonitor.cs" />
     <Compile Include="PanasonicResponseHandler.cs" />
     <Compile Include="PanasonicCamera.cs" />
-    <Compile Include="PanasonicCameraBridge.cs" />
     <Compile Include="PanasonicCameraExtensions.cs" />
-    <Compile Include="PanasonicCameraJoinMap.cs" />
     <Compile Include="PanasonicCameraPreset.cs" />
     <Compile Include="PanasonicCameraPropsConfig.cs" />
     <Compile Include="PanasonicCmdBuilder.cs" />

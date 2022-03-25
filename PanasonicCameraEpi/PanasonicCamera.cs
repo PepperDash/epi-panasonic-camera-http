@@ -1,24 +1,27 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Crestron.SimplSharpPro.DeviceSupport;
 using Newtonsoft.Json.Linq;
 using PepperDash.Essentials.Bridges;
+using PepperDash.Essentials.Core.Bridges;
 using PepperDash.Essentials.Core.Config;
 using PepperDash.Essentials.Core;
 using PepperDash.Essentials.Core.Devices;
 using PepperDash.Essentials.Devices.Common.Cameras;
 using PepperDash.Core;
+using PepperDash.Essentials.Devices.Common.VideoCodec.Cisco;
 
 namespace PanasonicCameraEpi
 {
-    public class PanasonicCamera : ReconfigurableDevice, IHasCameraPtzControl, IHasCameraOff, ICommunicationMonitor, IBridge, IRoutingSource
+    public class PanasonicCamera : ReconfigurableDevice, IBridgeAdvanced, IHasCameraPtzControl, IHasCameraOff, ICommunicationMonitor, IRoutingSource
     {
         private readonly StatusMonitorBase _monitor;
         private readonly PanasonicCmdBuilder _cmd;
         private readonly PanasonicResponseHandler _responseHandler;
         private readonly CommandQueue _queue;
         private readonly Dictionary<uint, PanasonicCameraPreset> _presets;
- 
+
         public bool IsPoweredOn { get; private set; }
         public Dictionary<uint, StringFeedback> PresetNamesFeedbacks { get; private set; }
         public IntFeedback NumberOfPresetsFeedback { get; private set; }
@@ -27,33 +30,14 @@ namespace PanasonicCameraEpi
         public BoolFeedback IsOnlineFeedback { get { return _monitor.IsOnlineFeedback; } }		
         public IntFeedback PanSpeedFeedback { get; private set; }
         public IntFeedback ZoomSpeedFeedback { get; private set; }
-        public IntFeedback TiltSpeedFeedback { get; private set; }
-
-        public static void LoadPlugin()
-        {
-            DeviceFactory.AddFactoryForType("panasonicHttpCamera", BuildDevice);
-        }
-
-        public static PanasonicCamera BuildDevice(DeviceConfig config)
-        {
-            var cameraConfig = PanasonicCameraPropsConfig.FromDeviceConfig(config);
-            if (!cameraConfig.Control.Method.Equals("http", StringComparison.OrdinalIgnoreCase))
-                throw new NotSupportedException("No valid control method found");
-
-            var client = new GenericHttpClient(string.Format("{0}-httpClient", config.Key), config.Name,
-                cameraConfig.Control.TcpSshProperties.Address);
-
-            DeviceManager.AddDevice(client);
-
-            return new PanasonicCamera(client, config);
-        }
+        public IntFeedback TiltSpeedFeedback { get; private set; }		
 
         public PanasonicCamera(IBasicCommunication comms, DeviceConfig config)
             : base(config)
         {
             OutputPorts = new RoutingPortCollection<RoutingOutputPort>();
- 
-            var cameraConfig = PanasonicCameraPropsConfig.FromDeviceConfig(config);
+
+			var cameraConfig = PanasonicCameraPropsConfig.FromDeviceConfig(config);
 
 			_responseHandler = new PanasonicResponseHandler();
 
@@ -66,11 +50,11 @@ namespace PanasonicCameraEpi
                     PollString = "cgi-bin/aw_ptz?cmd=%23O&res=1"
                 };
 
-            var tempClient = comms as GenericHttpClient;
+            var tempClient = comms as GenericHttpClient;	
             if(tempClient == null) 
             {
-                _monitor = new GenericCommunicationMonitor(this, tempClient, cameraConfig.CommunicationMonitor);
-                tempClient.TextReceived += _responseHandler.HandleResponseReceeved;
+                _monitor = new GenericCommunicationMonitor(this, comms, cameraConfig.CommunicationMonitor);
+                comms.TextReceived += _responseHandler.HandleResponseReceeved;
                     throw new NotImplementedException("Need to create a command queue for serial");
 			}
 			else
@@ -81,8 +65,7 @@ namespace PanasonicCameraEpi
                 _queue = queue;
             }
 
-            _cmd = new PanasonicCmdBuilder(12, 25, 12);
-
+            _cmd = new PanasonicCmdBuilder(12, 25, 12, cameraConfig.HomeCommand, cameraConfig.PrivacyCommand);
             _presets = cameraConfig.Presets.ToDictionary(x => (uint)x.Id);
 
             AddPostActivationAction(() =>
@@ -109,7 +92,6 @@ namespace PanasonicCameraEpi
                 PanSpeed = cameraConfig.PanSpeed;
             });
         }
-
         public override bool CustomActivate()
         {
             SetupFeedbacks();
@@ -129,7 +111,7 @@ namespace PanasonicCameraEpi
             _monitor.Start();
 
             return true;
-        }
+        }        
 
         private void HandleMonitorStatusChange(object sender, MonitorStatusChangeEventArgs e)
         {
@@ -294,6 +276,9 @@ namespace PanasonicCameraEpi
 
         public void RecallPreset(int preset)
         {
+            if (!IsPoweredOn)
+                _queue.EnqueueCmd(_cmd.PowerOnCommand);
+
             _queue.EnqueueCmd(_cmd.PresetRecallCommand(preset));	        
         }
 
@@ -302,6 +287,33 @@ namespace PanasonicCameraEpi
             _queue.EnqueueCmd(_cmd.PresetSaveCommand(preset));
         }
 
+		/// <summary>
+		/// Sets the IP address used by the plugin 
+		/// </summary>
+        /// <param name="address">string</param>
+		public void SetIpAddress(string address)
+		{
+			try
+			{
+				if (address.Length > 2 & Config.Properties["control"]["tcpSshProperties"]["address"].ToString() != address)
+				{
+					Debug.Console(2, this, "Changing IPAddress: {0}", address);
+
+					Config.Properties["control"]["tcpSshProperties"]["address"] = address;
+					Debug.Console(2, this, "{0}", Config.Properties.ToString());
+                    SetConfig(Config);
+					var tempClient = DeviceManager.GetDeviceForKey(string.Format("{0}-httpClient", this.Key)) as GenericHttpClient;
+					tempClient.Client.HostName = address;
+				}
+			}
+			catch (Exception e)
+			{
+				if (Debug.Level == 2)
+					Debug.Console(2, this, "Error SetIpAddress: '{0}'", e);
+			}
+		}
+
+	
         public void UpdatePresetName(int presetId, string name)
         {
             if (String.IsNullOrEmpty(name))
@@ -325,14 +337,126 @@ namespace PanasonicCameraEpi
             SetConfig(Config);
         }
 
-        #region IBridge Members
+        #region Overrides of EssentialsBridgeableDevice
 
-        public void LinkToApi(Crestron.SimplSharpPro.DeviceSupport.BasicTriList trilist, uint joinStart, string joinMapKey)
+        /// <summary>
+        /// Links the plugin device to the EISC bridge
+        /// </summary>
+        /// <param name="trilist"></param>
+        /// <param name="joinStart"></param>
+        /// <param name="joinMapKey"></param>
+        /// <param name="bridge"></param>        
+        public void LinkToApi(BasicTriList trilist, uint joinStart, string joinMapKey, EiscApiAdvanced bridge)
         {
-            this.LinkToApiExt(trilist, joinStart, joinMapKey);
-        }
+            var joinMap = new PanasonicCameraBridgeJoinMap(joinStart);
 
-        #endregion
+            // This adds the join map to the collection on the bridge
+            if (bridge != null)
+            {
+                bridge.AddJoinMap(Key, joinMap);
+            }
+
+            var customJoins = JoinMapHelper.TryGetJoinMapAdvancedForDevice(joinMapKey);
+
+            if (customJoins != null)
+            {
+                joinMap.SetCustomJoinData(customJoins);
+            }
+
+            Debug.Console(1, "Linking to Trilist '{0}'", trilist.ID.ToString("X"));
+            Debug.Console(0, "Linking to Bridge Type {0}", GetType().Name);
+
+            // links to bridge
+            trilist.SetString(joinMap.DeviceName.JoinNumber, Name);
+            trilist.SetStringSigAction(joinMap.DeviceComs.JoinNumber, SendCustomCommand);
+            
+            NameFeedback.LinkInputSig(trilist.StringInput[joinMap.DeviceName.JoinNumber]);
+            
+            NumberOfPresetsFeedback.LinkInputSig(trilist.UShortInput[joinMap.NumberOfPresets.JoinNumber]);
+            
+            CameraIsOffFeedback.LinkInputSig(trilist.BooleanInput[joinMap.PowerOff.JoinNumber]);
+            CameraIsOffFeedback.LinkComplementInputSig(trilist.BooleanInput[joinMap.PowerOn.JoinNumber]);
+
+            IsOnlineFeedback.LinkInputSig(trilist.BooleanInput[joinMap.IsOnline.JoinNumber]);
+
+            PanSpeedFeedback.LinkInputSig(trilist.UShortInput[joinMap.PanSpeed.JoinNumber]);
+            TiltSpeedFeedback.LinkInputSig(trilist.UShortInput[joinMap.TiltSpeed.JoinNumber]);
+            ZoomSpeedFeedback.LinkInputSig(trilist.UShortInput[joinMap.ZoomSpeed.JoinNumber]);
+
+            trilist.SetBoolSigAction(joinMap.PanLeft.JoinNumber, sig =>
+            {
+                if (sig) PanLeft();
+                else PanStop();
+            });
+
+            trilist.SetBoolSigAction(joinMap.PanRight.JoinNumber, sig =>
+            {
+                if (sig) PanRight();
+                else PanStop();
+            });
+
+            trilist.SetBoolSigAction(joinMap.TiltUp.JoinNumber, sig =>
+            {
+                if (sig) TiltUp();
+                else TiltStop();
+            });
+
+            trilist.SetBoolSigAction(joinMap.TiltDown.JoinNumber, sig =>
+            {
+                if (sig) TiltDown();
+                else TiltStop();
+            });
+
+            trilist.SetBoolSigAction(joinMap.ZoomIn.JoinNumber, sig =>
+            {
+                if (sig) ZoomIn();
+                else ZoomStop();
+            });
+
+            trilist.SetBoolSigAction(joinMap.ZoomOut.JoinNumber, sig =>
+            {
+                if (sig) ZoomOut();
+                else ZoomStop();
+            });
+
+            trilist.SetSigTrueAction(joinMap.PowerOn.JoinNumber, CameraOn);
+            trilist.SetSigTrueAction(joinMap.PowerOff.JoinNumber, CameraOff);
+            trilist.SetSigTrueAction(joinMap.PrivacyOn.JoinNumber, PositionPrivacy);
+            trilist.SetSigTrueAction(joinMap.PrivacyOff.JoinNumber, () => RecallPreset(1));
+            trilist.SetSigTrueAction(joinMap.Home.JoinNumber, PositionHome);
+
+            trilist.SetUShortSigAction(joinMap.PanSpeed.JoinNumber, panSpeed => PanSpeed = panSpeed);
+            trilist.SetUShortSigAction(joinMap.TiltSpeed.JoinNumber, tiltSpeed => TiltSpeed = tiltSpeed);
+            trilist.SetUShortSigAction(joinMap.ZoomSpeed.JoinNumber, zoomSpeed => ZoomSpeed = zoomSpeed);
+
+            trilist.SetStringSigAction(joinMap.IpAddress.JoinNumber, SetIpAddress);
+
+            foreach (var preset in PresetNamesFeedbacks)
+            {
+                Debug.Console(2, "foreach: preset.Key: {0} preset.Value: {1}", preset.Key, preset.Value);
+                var presetNumber = preset.Key;
+                var nameJoin = joinMap.PresetNames.JoinNumber + presetNumber - 1;
+                preset.Value.LinkInputSig(trilist.StringInput[nameJoin]);
+                preset.Value.FireUpdate();
+
+                var recallJoin = joinMap.PresetRecall.JoinNumber + presetNumber - 1;
+                var saveJoin = joinMap.PresetSave.JoinNumber + presetNumber - 1;
+
+                trilist.SetSigHeldAction(recallJoin, 5000, () => SavePreset((int)presetNumber), () => RecallPreset((int)presetNumber));
+                trilist.SetSigTrueAction(saveJoin, () => SavePreset((int)presetNumber));
+                trilist.SetStringSigAction(recallJoin, s => UpdatePresetName((int)presetNumber, s));
+            }
+
+            trilist.OnlineStatusChange += (o, a) =>
+            {
+                if (!a.DeviceOnLine) return;
+
+                trilist.SetString(joinMap.DeviceName.JoinNumber, Name);
+                
+            };
+        }        
+
+        #endregion Overrides of EssentialsBridgeableDevice
 
         #region ICommunicationMonitor Members
 

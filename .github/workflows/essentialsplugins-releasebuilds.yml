@@ -16,7 +16,7 @@ env:
   RELEASE_BRANCH: main
 jobs:
   Build_Project:
-    runs-on: windows-latest
+    runs-on: windows-2019
     outputs:
       version: ${{steps.setVersionNumber.outputs.version}}
     steps:
@@ -166,7 +166,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   Push_Nuget_Package:
     needs: Build_Project
-    runs-on: windows-latest
+    runs-on: windows-2019
     steps:
       - name: Download Build output
         uses: actions/download-artifact@v1
@@ -190,7 +190,8 @@ jobs:
       - name: Add nuget.exe
         uses: nuget/setup-nuget@v1
       - name: Add Github Packages source
-        run: nuget sources add -name github -source https://nuget.pkg.github.com/pepperdash/index.json -username Pepperdash -password ${{ secrets.GITHUB_TOKEN }}
+        # run: nuget sources add -name github -source https://nuget.pkg.github.com/pepperdash/index.json -username Pepperdash -password ${{ secrets.GITHUB_TOKEN }}
+        run: nuget sources add -name github -source https://nuget.pkg.github.com/pepperdash-engineering/index.json -username ${{ secrets.GH_PACKAGE_USER }} -password ${{ secrets.GH_PACKAGE_PASSWORD  }}
       # Pushes to nuget, not needed unless publishing publicly
       #- name: Add nuget.org API Key
       #  run: nuget setApiKey ${{ secrets.NUGET_API_KEY }}

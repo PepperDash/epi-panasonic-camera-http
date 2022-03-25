@@ -62,6 +62,11 @@ namespace PanasonicCameraEpi
 
         private void TimerCallback(object obj)
         {
+            if (string.IsNullOrEmpty(_client.Client.HostName))
+            {
+                Debug.Console(0, "Panasonic camera hostname not valid");
+                return;
+            }
             _client.SendText(_pollString);
         }
 
