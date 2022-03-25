@@ -14,7 +14,6 @@ using PepperDash.Essentials.Devices.Common.VideoCodec.Cisco;
 
 namespace PanasonicCameraEpi
 {
-    //public class PanasonicCamera : ReconfigurableDevice, IHasCameraPtzControl, IHasCameraOff, ICommunicationMonitor, IBridge, IRoutingSource
     public class PanasonicCamera : ReconfigurableDevice, IBridgeAdvanced, IHasCameraPtzControl, IHasCameraOff, ICommunicationMonitor, IRoutingSource
     {
         private readonly StatusMonitorBase _monitor;
@@ -31,28 +30,7 @@ namespace PanasonicCameraEpi
         public BoolFeedback IsOnlineFeedback { get { return _monitor.IsOnlineFeedback; } }		
         public IntFeedback PanSpeedFeedback { get; private set; }
         public IntFeedback ZoomSpeedFeedback { get; private set; }
-        public IntFeedback TiltSpeedFeedback { get; private set; }
-
-		/*
-        public static void LoadPlugin()
-        {
-            DeviceFactory.AddFactoryForType("panasonicHttpCamera", BuildDevice);
-        }
-
-        public static PanasonicCamera BuildDevice(DeviceConfig config)
-        {
-            var cameraConfig = PanasonicCameraPropsConfig.FromDeviceConfig(config);
-            if (!cameraConfig.Control.Method.Equals("http", StringComparison.OrdinalIgnoreCase))
-                throw new NotSupportedException("No valid control method found");
-
-            var client = new GenericHttpClient(string.Format("{0}-httpClient", config.Key), config.Name,
-                cameraConfig.Control.TcpSshProperties.Address);
-
-            DeviceManager.AddDevice(client);
-
-            return new PanasonicCamera(client, config);
-        }
-		 */
+        public IntFeedback TiltSpeedFeedback { get; private set; }		
 
         public PanasonicCamera(IBasicCommunication comms, DeviceConfig config)
             : base(config)
@@ -359,15 +337,6 @@ namespace PanasonicCameraEpi
             SetConfig(Config);
         }
 
-        #region IBridge Members (basic)
-
-        //public void LinkToApi(Crestron.SimplSharpPro.DeviceSupport.BasicTriList trilist, uint joinStart, string joinMapKey)
-        //{
-        //    this.LinkToApiExt(trilist, joinStart, joinMapKey);           
-        //}
-
-        #endregion
-
         #region Overrides of EssentialsBridgeableDevice
 
         /// <summary>
@@ -376,8 +345,7 @@ namespace PanasonicCameraEpi
         /// <param name="trilist"></param>
         /// <param name="joinStart"></param>
         /// <param name="joinMapKey"></param>
-        /// <param name="bridge"></param>
-        //public override void LinkToApi(BasicTriList trilist, uint joinStart, string joinMapKey, EiscApiAdvanced bridge)
+        /// <param name="bridge"></param>        
         public void LinkToApi(BasicTriList trilist, uint joinStart, string joinMapKey, EiscApiAdvanced bridge)
         {
             var joinMap = new PanasonicCameraBridgeJoinMap(joinStart);
