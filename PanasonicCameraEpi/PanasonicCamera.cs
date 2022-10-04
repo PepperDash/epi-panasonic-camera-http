@@ -3,14 +3,12 @@ using System.Collections.Generic;
 using System.Linq;
 using Crestron.SimplSharpPro.DeviceSupport;
 using Newtonsoft.Json.Linq;
-using PepperDash.Essentials.Bridges;
 using PepperDash.Essentials.Core.Bridges;
 using PepperDash.Essentials.Core.Config;
 using PepperDash.Essentials.Core;
 using PepperDash.Essentials.Core.Devices;
 using PepperDash.Essentials.Devices.Common.Cameras;
 using PepperDash.Core;
-using PepperDash.Essentials.Devices.Common.VideoCodec.Cisco;
 
 namespace PanasonicCameraEpi
 {
@@ -42,7 +40,7 @@ namespace PanasonicCameraEpi
 			_responseHandler = new PanasonicResponseHandler();
 
             if (cameraConfig.CommunicationMonitor == null)
-                cameraConfig.CommunicationMonitor = new CommunicationMonitorConfig()
+                cameraConfig.CommunicationMonitor = new CommunicationMonitorConfig
                 {
                     PollInterval = 60000,
                     TimeToWarning = 180000,
@@ -57,13 +55,10 @@ namespace PanasonicCameraEpi
                 comms.TextReceived += _responseHandler.HandleResponseReceeved;
                     throw new NotImplementedException("Need to create a command queue for serial");
 			}
-			else
-            {
-                _monitor = new PanasonicHttpCameraMonitor(this, tempClient, cameraConfig.CommunicationMonitor);
-                var queue = new HttpCommandQueue(comms);
-                queue.ResponseReceived += _responseHandler.HandleResponseReceived;
-                _queue = queue;
-            }
+            _monitor = new PanasonicHttpCameraMonitor(this, tempClient, cameraConfig.CommunicationMonitor);
+            var queue = new HttpCommandQueue(comms);
+            queue.ResponseReceived += _responseHandler.HandleResponseReceived;
+            _queue = queue;
 
             _cmd = new PanasonicCmdBuilder(12, 25, 12, cameraConfig.HomeCommand, cameraConfig.PrivacyCommand);
             _presets = cameraConfig.Presets.ToDictionary(x => (uint)x.Id);
@@ -129,7 +124,7 @@ namespace PanasonicCameraEpi
                 if (_presets.ContainsKey(index))
                     continue;
 
-                _presets.Add(index, new PanasonicCameraPreset() {Id = (int) index, Name = String.Empty});
+                _presets.Add(index, new PanasonicCameraPreset {Id = (int) index, Name = String.Empty});
             }
 
             NumberOfPresetsFeedback = new IntFeedback(() => _presets.Values.Count(x => !String.IsNullOrEmpty(x.Name)));
@@ -295,16 +290,19 @@ namespace PanasonicCameraEpi
 		{
 			try
 			{
-				if (address.Length > 2 & Config.Properties["control"]["tcpSshProperties"]["address"].ToString() != address)
-				{
-					Debug.Console(2, this, "Changing IPAddress: {0}", address);
+			    if (!(address.Length > 2 & Config.Properties["control"]["tcpSshProperties"]["address"].ToString() != address))
+			        return;
+			    Debug.Console(2, this, "Changing IPAddress: {0}", address);
 
-					Config.Properties["control"]["tcpSshProperties"]["address"] = address;
-					Debug.Console(2, this, "{0}", Config.Properties.ToString());
-                    SetConfig(Config);
-					var tempClient = DeviceManager.GetDeviceForKey(string.Format("{0}-httpClient", this.Key)) as GenericHttpClient;
-					tempClient.Client.HostName = address;
-				}
+			    Config.Properties["control"]["tcpSshProperties"]["address"] = address;
+			    Debug.Console(2, this, "{0}", Config.Properties.ToString());
+			    SetConfig(Config);
+			    var tempClient = DeviceManager.GetDeviceForKey(string.Format("{0}-httpClient", Key)) as GenericHttpClient;
+			    if (tempClient == null)
+			    {
+			        throw new Exception("Error - No Valid TCP Client!");
+			    }
+			    tempClient.Client.HostName = address;
 			}
 			catch (Exception e)
 			{

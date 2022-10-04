@@ -6,8 +6,8 @@ namespace PanasonicCameraEpi
 {
     public class PanasonicCmdBuilder
     {
-        private static readonly string CmdHeader = "cgi-bin/aw_ptz?cmd=%23";
-        private static readonly string CmdSuffix = "&res=1";
+        private const string CmdHeader = "cgi-bin/aw_ptz?cmd=%23";
+        private const string CmdSuffix = "&res=1";
 
         public string PanStopCommand { get; private set; }
         public string TiltStopCommand { get; private set; }
