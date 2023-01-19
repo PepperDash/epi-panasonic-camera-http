@@ -199,6 +199,23 @@ namespace PanasonicCameraEpi
             });
 
         /// <summary>
+        /// Camera preset saved
+        /// </summary>
+        [JoinName("PresetSavedFeedback")]
+        public JoinDataComplete PresetSavedFeedback = new JoinDataComplete(
+            new JoinData
+            {
+                JoinNumber = 30,
+                JoinSpan = 1
+            },
+            new JoinMetadata
+            {
+                Description = "Camera preset saved Feedback",
+                JoinCapabilities = eJoinCapabilities.ToSIMPL,
+                JoinType = eJoinType.Digital
+            });
+
+        /// <summary>
         /// Camera preset save
         /// </summary>
         [JoinName("PresetSave")]

@@ -11,6 +11,8 @@ using PepperDash.Essentials.Core.Devices;
 using PepperDash.Essentials.Devices.Common.Cameras;
 using PepperDash.Core;
 using PepperDash.Essentials.Devices.Common.VideoCodec.Cisco;
+using Crestron.SimplSharp;
+
 
 namespace PanasonicCameraEpi
 {
@@ -30,7 +32,23 @@ namespace PanasonicCameraEpi
         public BoolFeedback IsOnlineFeedback { get { return _monitor.IsOnlineFeedback; } }		
         public IntFeedback PanSpeedFeedback { get; private set; }
         public IntFeedback ZoomSpeedFeedback { get; private set; }
-        public IntFeedback TiltSpeedFeedback { get; private set; }		
+        public IntFeedback TiltSpeedFeedback { get; private set; }
+        public BoolFeedback PresetSavedFeedback { get; private set; }
+        public bool PresetSavedBool
+        {
+            get
+            {
+                return _PresetSavedBool;
+            }
+            set
+            {
+                _PresetSavedBool = value;
+                PresetSavedFeedback.FireUpdate();
+            }
+
+               
+        }
+        private bool _PresetSavedBool { get; set; }
 
         public PanasonicCamera(IBasicCommunication comms, DeviceConfig config)
             : base(config)
@@ -138,6 +156,7 @@ namespace PanasonicCameraEpi
             PanSpeedFeedback = new IntFeedback(() => PanSpeed);
             TiltSpeedFeedback = new IntFeedback(() => TiltSpeed);
             ZoomSpeedFeedback = new IntFeedback(() => ZoomSpeed);
+            PresetSavedFeedback = new BoolFeedback(() => PresetSavedBool); 
 
             PanSpeedFeedback.FireUpdate();
             TiltSpeedFeedback.FireUpdate();
@@ -285,6 +304,8 @@ namespace PanasonicCameraEpi
         public void SavePreset(int preset)
         {
             _queue.EnqueueCmd(_cmd.PresetSaveCommand(preset));
+            PresetSavedBool = true;
+            new CTimer( (o) => PresetSavedBool = false, 5000);
         }
 
 		/// <summary>
@@ -373,6 +394,8 @@ namespace PanasonicCameraEpi
             NameFeedback.LinkInputSig(trilist.StringInput[joinMap.DeviceName.JoinNumber]);
             
             NumberOfPresetsFeedback.LinkInputSig(trilist.UShortInput[joinMap.NumberOfPresets.JoinNumber]);
+
+            PresetSavedFeedback.LinkInputSig(trilist.BooleanInput[joinMap.PresetSavedFeedback.JoinNumber]);
             
             CameraIsOffFeedback.LinkInputSig(trilist.BooleanInput[joinMap.PowerOff.JoinNumber]);
             CameraIsOffFeedback.LinkComplementInputSig(trilist.BooleanInput[joinMap.PowerOn.JoinNumber]);
