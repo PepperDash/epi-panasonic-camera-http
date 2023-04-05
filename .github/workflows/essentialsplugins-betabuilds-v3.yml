@@ -123,7 +123,7 @@ jobs:
               Write-Output "Unable to apply version to AssemblyInfo.cs files";
           }
       - name: add PepperDash Eng Feed 
-        run: nuget sources add -name github -source https://nuget.pkg.github.com/pepperdash-engineering/index.json -username ${{ secrets.GH_PACKAGE_USER }} -password ${{ secrets.GH_PACKAGE_PASSWORD  }}
+        run: nuget sources add -name github -source https://nuget.pkg.github.com/pepperdash/index.json -username ${{ secrets.GH_PACKAGE_USER }} -password ${{ secrets.GH_PACKAGE_PASSWORD  }}
       - name: restore Nuget Packages
         run: nuget install .\packages.config -OutputDirectory .\packages -ExcludeVersion
       # Set the SOLUTION_PATH
