@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using Crestron.SimplSharp;
-using PepperDash.Essentials.Core;
+﻿using PepperDash.Essentials.Core;
 
 namespace PanasonicCameraEpi
 {
@@ -195,6 +190,23 @@ namespace PanasonicCameraEpi
             {
                 Description = "Camera preset recall",
                 JoinCapabilities = eJoinCapabilities.FromSIMPL,
+                JoinType = eJoinType.Digital
+            });
+
+        /// <summary>
+        /// Camera preset saved
+        /// </summary>
+        [JoinName("PresetSavedFeedback")]
+        public JoinDataComplete PresetSavedFeedback = new JoinDataComplete(
+            new JoinData
+            {
+                JoinNumber = 30,
+                JoinSpan = 1
+            },
+            new JoinMetadata
+            {
+                Description = "Camera preset saved Feedback",
+                JoinCapabilities = eJoinCapabilities.ToSIMPL,
                 JoinType = eJoinType.Digital
             });
 

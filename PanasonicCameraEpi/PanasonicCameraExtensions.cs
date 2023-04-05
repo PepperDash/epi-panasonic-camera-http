@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace PanasonicCameraEpi
+﻿namespace PanasonicCameraEpi
 {
     public static class ScalingExtensions
     {
