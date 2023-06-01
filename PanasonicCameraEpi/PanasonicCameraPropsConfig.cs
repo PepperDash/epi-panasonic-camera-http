@@ -31,7 +31,8 @@ namespace PanasonicCameraEpi
         public int TiltSpeed { get; set; }
         public string HomeCommand { get; set; }
         public string PrivacyCommand { get; set; }
-        public int pacing { get; set; }
+
+        public int Pacing { get; set; }
 
     }
 

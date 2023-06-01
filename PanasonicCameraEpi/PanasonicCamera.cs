@@ -75,9 +75,9 @@ namespace PanasonicCameraEpi
 			}
             _monitor = new PanasonicHttpCameraMonitor(this, tempClient, cameraConfig.CommunicationMonitor);
             HttpCommandQueue queue; 
-            if (cameraConfig.pacing > 0)
+            if (cameraConfig.Pacing > 0)
             {
-                 queue = new HttpCommandQueue(comms, cameraConfig.pacing);
+                 queue = new HttpCommandQueue(comms, cameraConfig.Pacing);
             }
             else
             {

@@ -9,7 +9,7 @@ namespace PanasonicCameraEpi
     public class HttpCommandQueue : CommandQueue
     {
         public event EventHandler<GenericHttpClientEventArgs> ResponseReceived;
-        int _Pacing = 130; 
+        private int _pacing = 130; 
 
         public HttpCommandQueue(IBasicCommunication coms)
             : base(coms)
@@ -19,7 +19,7 @@ namespace PanasonicCameraEpi
         public HttpCommandQueue(IBasicCommunication coms, int pacing)
             : base(coms)
         {
-            _Pacing = pacing;
+            _pacing = pacing;
         }
 
         protected override object ProcessQueue(object obj)
@@ -54,7 +54,7 @@ namespace PanasonicCameraEpi
                         Debug.Console(1, client, "Dispatching request: {0}", request.Url.PathAndParams);
 
                         client.Client.DispatchAsync(request, OnResponseReceived);
-                        Thread.Sleep(_Pacing); //command gap of 130 recommended by documentation
+                        Thread.Sleep(_pacing); //command gap of 130 recommended by documentation
                     }
                     catch (Exception ex)
                     {
