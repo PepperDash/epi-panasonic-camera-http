@@ -74,7 +74,15 @@ namespace PanasonicCameraEpi
                     throw new NotImplementedException("Need to create a command queue for serial");
 			}
             _monitor = new PanasonicHttpCameraMonitor(this, tempClient, cameraConfig.CommunicationMonitor);
-            var queue = new HttpCommandQueue(comms);
+            HttpCommandQueue queue; 
+            if (cameraConfig.pacing > 0)
+            {
+                 queue = new HttpCommandQueue(comms, cameraConfig.pacing);
+            }
+            else
+            {
+                 queue = new HttpCommandQueue(comms);
+            }
             queue.ResponseReceived += _responseHandler.HandleResponseReceived;
             _queue = queue;
 
