@@ -1,11 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using Crestron.SimplSharpPro.DeviceSupport;
 using Newtonsoft.Json.Linq;
 using PepperDash.Essentials.Core.Bridges;
 using PepperDash.Essentials.Core.Config;
 using PepperDash.Essentials.Core;
+using PepperDash.Essentials.Core.DeviceInfo;
 using PepperDash.Essentials.Core.Devices;
 using PepperDash.Essentials.Devices.Common.Cameras;
 using PepperDash.Core;
@@ -14,7 +16,7 @@ using Crestron.SimplSharp;
 
 namespace PanasonicCameraEpi
 {
-    public class PanasonicCamera : ReconfigurableDevice, IBridgeAdvanced, IHasCameraPtzControl, IHasCameraOff, ICommunicationMonitor, IRoutingSource
+    public class PanasonicCamera : ReconfigurableDevice, IBridgeAdvanced, IHasCameraPtzControl, IHasCameraOff, ICommunicationMonitor, IRoutingSource, IDeviceInfoProvider
     {
         private readonly StatusMonitorBase _monitor;
         private readonly PanasonicCmdBuilder _cmd;
@@ -32,6 +34,17 @@ namespace PanasonicCameraEpi
         public IntFeedback ZoomSpeedFeedback { get; private set; }
         public IntFeedback TiltSpeedFeedback { get; private set; }
         public BoolFeedback PresetSavedFeedback { get; private set; }
+        public StringFeedback ModelFeedback { get; private set; }
+        public StringFeedback MakeFeedback { get; private set; }
+        private string NetworkAddress { get; set; }
+
+        private static readonly Regex validIpAddressRegex = new Regex(@"^([1-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])(\.([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])){3}$");
+        private static readonly Regex validHostnameRegex = new Regex(@"^(([a-z]|[a-z][a-z0-9-]*[a-z0-9]).)*([a-z]|[a-z][a-z0-9-]*[a-z0-9])$", RegexOptions.IgnoreCase);
+
+
+        public const string Make = "Panasonic";
+        public string Model {get; private set;}
+
         public bool PresetSavedBool
         {
             get
@@ -43,8 +56,6 @@ namespace PanasonicCameraEpi
                 _PresetSavedBool = value;
                 PresetSavedFeedback.FireUpdate();
             }
-
-               
         }
         private bool _PresetSavedBool { get; set; }
 
@@ -52,6 +63,8 @@ namespace PanasonicCameraEpi
             : base(config)
         {
             OutputPorts = new RoutingPortCollection<RoutingOutputPort>();
+
+            NetworkAddress = Config.Properties["control"]["tcpSshProperties"]["address"].ToString();
 
 			var cameraConfig = PanasonicCameraPropsConfig.FromDeviceConfig(config);
 
@@ -127,12 +140,39 @@ namespace PanasonicCameraEpi
                     IsPoweredOn = false;
                     CameraIsOffFeedback.FireUpdate();
                 };
+            _responseHandler.ResponseDeviceInfo += (sender, args) =>
+            {
+                if (DeviceInfo == null) DeviceInfo = new DeviceInfo();
+                DeviceInfo.FirmwareVersion = String.IsNullOrEmpty(DeviceInfo.FirmwareVersion)
+                    ? args.Firmware
+                    : DeviceInfo.FirmwareVersion;
+                DeviceInfo.MacAddress = String.IsNullOrEmpty(DeviceInfo.MacAddress)
+                    ? args.MacAddress
+                    : DeviceInfo.MacAddress;
+                DeviceInfo.SerialNumber = String.IsNullOrEmpty(DeviceInfo.SerialNumber)
+                    ? args.Serial
+                    : DeviceInfo.SerialNumber;
+                Model = String.IsNullOrEmpty(Model)
+                    ? args.Model
+                    : Model;
+                CheckNetworkInfo();
+            };
 
             _monitor.StatusChange += HandleMonitorStatusChange;
             _monitor.Start();
 
             return true;
-        }        
+        }
+
+        private void CheckNetworkInfo()
+        {
+            if (DeviceInfo == null) return;
+            var validIpMatch = validIpAddressRegex.Match(NetworkAddress);
+            var validHostnameMatch = validHostnameRegex.Match(NetworkAddress);
+            DeviceInfo.IpAddress = validIpMatch == null ? "" : NetworkAddress;
+            DeviceInfo.HostName = validHostnameMatch == null ? "" : NetworkAddress;
+            OnDeviceInfoChanged();
+        }
 
         private void HandleMonitorStatusChange(object sender, MonitorStatusChangeEventArgs e)
         {
@@ -160,6 +200,8 @@ namespace PanasonicCameraEpi
             TiltSpeedFeedback = new IntFeedback(() => TiltSpeed);
             ZoomSpeedFeedback = new IntFeedback(() => ZoomSpeed);
             PresetSavedFeedback = new BoolFeedback(() => PresetSavedBool); 
+            MakeFeedback = new StringFeedback(() => Make);
+            ModelFeedback = new StringFeedback(() => Model);
 
             PanSpeedFeedback.FireUpdate();
             TiltSpeedFeedback.FireUpdate();
@@ -331,6 +373,8 @@ namespace PanasonicCameraEpi
 			    {
 			        throw new Exception("Error - No Valid TCP Client!");
 			    }
+                NetworkAddress = address;
+                CheckNetworkInfo();
 			    tempClient.Client.HostName = address;
 			}
 			catch (Exception e)
@@ -497,5 +541,27 @@ namespace PanasonicCameraEpi
         #endregion
 
         public RoutingPortCollection<RoutingOutputPort> OutputPorts { get; private set; }
+
+        #region IDeviceInfoProvider Members
+
+        public DeviceInfo DeviceInfo { get; private set; }
+
+        public event DeviceInfoChangeHandler DeviceInfoChanged;
+
+        private void OnDeviceInfoChanged()
+        {
+            var handler = DeviceInfoChanged;
+            if (handler == null) return;
+            handler.Invoke(this, new DeviceInfoEventArgs(DeviceInfo));
+            ModelFeedback.FireUpdate();
+            MakeFeedback.FireUpdate();
+        }
+
+        public void UpdateDeviceInfo()
+        {
+            PanasonicCmdBuilder.BuildCustomCommand("/cgi-bin/", "getinfo?", "FILE=1");
+        }
+
+        #endregion
     }
 }

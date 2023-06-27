@@ -121,5 +121,12 @@ namespace PanasonicCameraEpi
         {
             return BuildCmd(cmd);
         }
+
+        public static string BuildCustomCommand(string header, string cmd, string suffix)
+        {
+            var builder = new StringBuilder(header);
+            builder.Append(cmd);
+            return builder.ToString();
+        }
     }
 }
