@@ -38,8 +38,8 @@ namespace PanasonicCameraEpi
         public StringFeedback MakeFeedback { get; private set; }
         private string NetworkAddress { get; set; }
 
-        private static readonly Regex validIpAddressRegex = new Regex(@"^([1-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])(\.([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])){3}$");
-        private static readonly Regex validHostnameRegex = new Regex(@"^(([a-z]|[a-z][a-z0-9-]*[a-z0-9]).)*([a-z]|[a-z][a-z0-9-]*[a-z0-9])$", RegexOptions.IgnoreCase);
+        private static readonly Regex ValidIpAddressRegex = new Regex(@"^([1-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])(\.([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])){3}$");
+        private static readonly Regex ValidHostnameRegex = new Regex(@"^(([a-z]|[a-z][a-z0-9-]*[a-z0-9]).)*([a-z]|[a-z][a-z0-9-]*[a-z0-9])$", RegexOptions.IgnoreCase);
 
 
         public const string Make = "Panasonic";
@@ -87,15 +87,7 @@ namespace PanasonicCameraEpi
                     throw new NotImplementedException("Need to create a command queue for serial");
 			}
             _monitor = new PanasonicHttpCameraMonitor(this, tempClient, cameraConfig.CommunicationMonitor);
-            HttpCommandQueue queue; 
-            if (cameraConfig.Pacing > 0)
-            {
-                 queue = new HttpCommandQueue(comms, cameraConfig.Pacing);
-            }
-            else
-            {
-                 queue = new HttpCommandQueue(comms);
-            }
+            HttpCommandQueue queue = cameraConfig.Pacing > 0 ? new HttpCommandQueue(comms, cameraConfig.Pacing) : new HttpCommandQueue(comms);
             queue.ResponseReceived += _responseHandler.HandleResponseReceived;
             _queue = queue;
 
@@ -167,8 +159,8 @@ namespace PanasonicCameraEpi
         private void CheckNetworkInfo()
         {
             if (DeviceInfo == null) return;
-            var validIpMatch = validIpAddressRegex.Match(NetworkAddress);
-            var validHostnameMatch = validHostnameRegex.Match(NetworkAddress);
+            var validIpMatch = ValidIpAddressRegex.Match(NetworkAddress);
+            var validHostnameMatch = ValidHostnameRegex.Match(NetworkAddress);
             DeviceInfo.IpAddress = validIpMatch == null ? "" : NetworkAddress;
             DeviceInfo.HostName = validHostnameMatch == null ? "" : NetworkAddress;
             OnDeviceInfoChanged();

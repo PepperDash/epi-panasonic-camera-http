@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using Crestron.SimplSharp;
 using PepperDash.Essentials.Core;
 using PepperDash.Core;
 using System.Text.RegularExpressions;
@@ -26,7 +25,7 @@ namespace PanasonicCameraEpi
         public PanasonicResponseHandler()
         {
 			ComsFb = new StringFeedback(() => _comsRx ?? string.Empty);
-            _deviceInfoRegex = new Dictionary<string, Regex>()
+            _deviceInfoRegex = new Dictionary<string, Regex>
             {
                 {"mac", new Regex(MacPattern)},
 			    {"serial", new Regex(SerialPattern)},
