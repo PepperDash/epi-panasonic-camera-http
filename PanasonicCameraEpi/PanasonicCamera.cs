@@ -149,6 +149,7 @@ namespace PanasonicCameraEpi
                 {
                     IsPoweredOn = false;
                     CameraIsOffFeedback.FireUpdate();
+                    UpdateDeviceInfo();
                 };
 
             _monitor.StatusChange += HandleMonitorStatusChange;
