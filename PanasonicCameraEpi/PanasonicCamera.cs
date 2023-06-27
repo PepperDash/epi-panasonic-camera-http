@@ -121,17 +121,6 @@ namespace PanasonicCameraEpi
         public override bool CustomActivate()
         {
             SetupFeedbacks();
-            _responseHandler.CameraPoweredOn += (sender, args) =>
-                {
-                    IsPoweredOn = true;
-                    CameraIsOffFeedback.FireUpdate();
-                };
-
-            _responseHandler.CameraPoweredOff += (sender, args) =>
-                {
-                    IsPoweredOn = false;
-                    CameraIsOffFeedback.FireUpdate();
-                };
             _responseHandler.ResponseDeviceInfo += (sender, args) =>
             {
                 if (DeviceInfo == null) DeviceInfo = new DeviceInfo();
@@ -149,6 +138,18 @@ namespace PanasonicCameraEpi
                     : Model;
                 CheckNetworkInfo();
             };
+            _responseHandler.CameraPoweredOn += (sender, args) =>
+                {
+                    IsPoweredOn = true;
+                    CameraIsOffFeedback.FireUpdate();
+                    UpdateDeviceInfo();
+                };
+
+            _responseHandler.CameraPoweredOff += (sender, args) =>
+                {
+                    IsPoweredOn = false;
+                    CameraIsOffFeedback.FireUpdate();
+                };
 
             _monitor.StatusChange += HandleMonitorStatusChange;
             _monitor.Start();
