@@ -38,10 +38,6 @@ namespace PanasonicCameraEpi
         public StringFeedback MakeFeedback { get; private set; }
         private string NetworkAddress { get; set; }
 
-        private static readonly Regex ValidIpAddressRegex = new Regex(@"^([1-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])(\.([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])){3}$");
-        private static readonly Regex ValidHostnameRegex = new Regex(@"^(([a-z]|[a-z][a-z0-9-]*[a-z0-9]).)*([a-z]|[a-z][a-z0-9-]*[a-z0-9])$", RegexOptions.IgnoreCase);
-
-
         public const string Make = "Panasonic";
         public string Model {get; private set;}
 
@@ -161,11 +157,19 @@ namespace PanasonicCameraEpi
         private void CheckNetworkInfo()
         {
             if (DeviceInfo == null) return;
-            var validIpMatch = ValidIpAddressRegex.Match(NetworkAddress);
-            var validHostnameMatch = ValidHostnameRegex.Match(NetworkAddress);
-            DeviceInfo.IpAddress = validIpMatch == null ? "" : NetworkAddress;
-            DeviceInfo.HostName = validHostnameMatch == null ? "" : NetworkAddress;
-            OnDeviceInfoChanged();
+            try
+            {
+                var hostEntry = Dns.GetHostEntry(NetworkAddress);
+                if (hostEntry == null) return;
+                DeviceInfo.IpAddress = hostEntry.AddressList.First().ToString();
+                DeviceInfo.HostName = hostEntry.HostName;
+                OnDeviceInfoChanged();
+            }
+            catch (Exception ex)
+            {
+                Debug.Console(0, "Exception Resololving Host Data : {0}", ex.Message);
+
+            }
         }
 
         private void HandleMonitorStatusChange(object sender, MonitorStatusChangeEventArgs e)
