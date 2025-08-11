@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 10.00
 # Visual Studio 2008
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PanasonicCameraEpi", "PanasonicCameraEpi\PanasonicCameraEpi.csproj", "{C551247C-4090-481C-829B-3A5969FCFF93}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "epi-panasonic-camera", "src\epi-panasonic-camera.csproj", "{C551247C-4090-481C-829B-3A5969FCFF93}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
