@@ -8,26 +8,34 @@ namespace PanasonicCameraEpi
 {
     public class HttpCommandQueue : CommandQueue
     {
-        public event EventHandler<GenericHttpClientEventArgs> ResponseReceived;
-        private int _pacing = 130; 
+        public event EventHandler<HttpClientResponse> ResponseReceived;
+        private int _pacing = 130;
+        private readonly HttpClient _httpClient;
+        private readonly string _hostname;
 
-        public HttpCommandQueue(IBasicCommunication coms)
-            : base(coms)
+        public HttpCommandQueue(string hostname)
+            : base(CreateDummyCommunication(hostname))
         {
-
+            _hostname = hostname;
+            _httpClient = new HttpClient();
         }
-        public HttpCommandQueue(IBasicCommunication coms, int pacing)
-            : base(coms)
+
+        public HttpCommandQueue(string hostname, int pacing)
+            : base(CreateDummyCommunication(hostname))
         {
+            _hostname = hostname;
             _pacing = pacing;
+            _httpClient = new HttpClient();
+        }
+
+        private static IBasicCommunication CreateDummyCommunication(string hostname)
+        {
+            // Create a minimal dummy communication object for base class compatibility
+            return new DummyHttpCommunication(hostname);
         }
 
         protected override object ProcessQueue(object obj)
         {
-            var client = obj as GenericHttpClient;
-            if (client == null)
-                throw new NullReferenceException("client");
-
             while (true)
             {
                 string path = null;
@@ -40,25 +48,27 @@ namespace PanasonicCameraEpi
                 }
                 if (path != null)
                 {
-                    if(string.IsNullOrEmpty(client.Client.HostName))
+                    if(string.IsNullOrEmpty(_hostname))
                     {
-                        Debug.Console(0, client, "Panasonic camera hostname not valid");
+                        Debug.Console(0, this, "Panasonic camera hostname not valid");
                         return null;
                     }
                     try
                     {
-                        var request = new HttpClientRequest();
-                        var url = String.Format("http://{0}/{1}", client.Client.HostName, path);
-                        request.Url.Parse(url);
+                        var request = new HttpClientRequest
+                        {
+                            Url = new UrlParser($"http://{_hostname}/{path}"),
+                            RequestType = RequestType.Get
+                        };
 
-                        Debug.Console(1, client, "Dispatching request: {0}", request.Url.PathAndParams);
+                        Debug.Console(1, this, "Dispatching request: {0}", request.Url.PathAndParams);
 
-                        client.Client.DispatchAsync(request, OnResponseReceived);
+                        _httpClient.DispatchAsync(request, OnResponseReceived);
                         Thread.Sleep(_pacing); //command gap of 130 recommended by documentation
                     }
                     catch (Exception ex)
                     {
-                        Debug.Console(1, client, "Caught an exception in the CmdProcessor {0}\r{1}\r{2}", ex.Message, ex.InnerException, ex.StackTrace);
+                        Debug.Console(1, this, "Caught an exception in the CmdProcessor {0}\r{1}\r{2}", ex.Message, ex.InnerException, ex.StackTrace);
                     }
                 }
                 else _wh.Wait();
@@ -83,10 +93,7 @@ namespace PanasonicCameraEpi
                     return;
                 }
 
-                if (ResponseReceived == null)
-                    return;
-
-                ResponseReceived.Invoke(this, new GenericHttpClientEventArgs(response.ContentString, response.ResponseUrl, HTTP_CALLBACK_ERROR.COMPLETED));
+                ResponseReceived?.Invoke(this, response);
 
             }
             catch (Exception ex)
@@ -94,5 +101,27 @@ namespace PanasonicCameraEpi
                 Debug.Console(1, this, "Panasonic camera client callback exception: {0}", ex.Message);
             }
         }
+    }
+
+    // Minimal dummy implementation for base class compatibility
+    internal class DummyHttpCommunication : IBasicCommunication
+    {
+        public string Key { get; private set; }
+        public bool IsConnected => true;
+        public CommunicationGather LineGather { get; set; }
+
+        public event EventHandler<GenericCommMethodReceiveTextArgs> TextReceived;
+        public event EventHandler<GenericCommMethodReceiveBytesArgs> BytesReceived;
+
+        public DummyHttpCommunication(string hostname)
+        {
+            Key = $"http-{hostname}";
+        }
+
+        public void Connect() { }
+        public void Disconnect() { }
+        public void SendText(string text) { }
+        public void SendBytes(byte[] bytes) { }
+        public void Dispose() { }
     }
 }

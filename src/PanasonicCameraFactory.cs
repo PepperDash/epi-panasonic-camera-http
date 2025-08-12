@@ -21,12 +21,9 @@ namespace PanasonicCameraEpi
 			if (!cameraConfig.Control.Method.Equals("http", StringComparison.OrdinalIgnoreCase))
 				throw new NotSupportedException("No valid control method found");
 
-			var client = new GenericHttpClient(string.Format("{0}-httpClient", config.Key), config.Name,
-				cameraConfig.Control.TcpSshProperties.Address);
-
-			DeviceManager.AddDevice(client);
-
-			return new PanasonicCamera(client, config);
+			// No longer need to create GenericHttpClient - PanasonicCamera will handle HTTP directly
+			// Create a dummy communication object if needed, or pass null
+			return new PanasonicCamera(null, config);
 		}
 	}
 }

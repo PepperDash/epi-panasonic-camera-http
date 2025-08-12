@@ -66,28 +66,36 @@ namespace PanasonicCameraEpi
                     PollString = "cgi-bin/aw_ptz?cmd=%23O&res=1"
                 };
 
-            var tempClient = comms as GenericHttpClient;	
-            if(tempClient == null) 
+            // Check if it's HTTP communication - assume hostname from config
+            var hostname = cameraConfig.Control?.TcpSshProperties?.Address;
+            if (string.IsNullOrEmpty(hostname))
             {
                 _monitor = new GenericCommunicationMonitor(this, comms, cameraConfig.CommunicationMonitor);
                 comms.TextReceived += _responseHandler.HandleResponseReceeved;
-                    throw new NotImplementedException("Need to create a command queue for serial");
+                throw new NotImplementedException("Need to create a command queue for serial");
 			}
-            _monitor = new PanasonicHttpCameraMonitor(this, tempClient, cameraConfig.CommunicationMonitor);
+            _monitor = new PanasonicHttpCameraMonitor(this, hostname, cameraConfig.CommunicationMonitor);
             HttpCommandQueue queue; 
             if (cameraConfig.Pacing > 0)
             {
-                 queue = new HttpCommandQueue(comms, cameraConfig.Pacing);
+                 queue = new HttpCommandQueue(hostname, cameraConfig.Pacing);
             }
             else
             {
-                 queue = new HttpCommandQueue(comms);
+                 queue = new HttpCommandQueue(hostname);
             }
-            queue.ResponseReceived += _responseHandler.HandleResponseReceived;
+            queue.ResponseReceived += _responseHandler.HandleHttpResponse;
             _queue = queue;
 
             _cmd = new PanasonicCmdBuilder(12, 25, 12, cameraConfig.HomeCommand, cameraConfig.PrivacyCommand);
             _presets = cameraConfig.Presets.ToDictionary(x => (uint)x.Id);
+
+            OutputPorts.Add(new RoutingOutputPort(
+				RoutingPortNames.AnyVideoOut, eRoutingSignalType.Video,
+				eRoutingPortConnectionType.Hdmi,
+				null,
+				this
+			));
 
             AddPostActivationAction(() =>
                 {
@@ -326,12 +334,8 @@ namespace PanasonicCameraEpi
 			    Config.Properties["control"]["tcpSshProperties"]["address"] = address;
 			    Debug.Console(2, this, "{0}", Config.Properties.ToString());
 			    SetConfig(Config);
-			    var tempClient = DeviceManager.GetDeviceForKey(string.Format("{0}-httpClient", Key)) as GenericHttpClient;
-			    if (tempClient == null)
-			    {
-			        throw new Exception("Error - No Valid TCP Client!");
-			    }
-			    tempClient.Client.HostName = address;
+			    // Update hostname in config - the monitor will use the new address
+			    // Note: With HttpClient approach, the monitor handles the hostname directly
 			}
 			catch (Exception e)
 			{

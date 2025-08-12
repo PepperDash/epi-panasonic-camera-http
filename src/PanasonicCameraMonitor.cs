@@ -8,20 +8,21 @@ namespace PanasonicCameraEpi
     public class PanasonicHttpCameraMonitor : StatusMonitorBase
     {
         private readonly CTimer _timer;
-        private readonly GenericHttpClient _client;
+        private readonly HttpClient _client;
         private readonly long _pollInterval;
         private readonly string _pollString;
+        private readonly string _hostname;
 
-        public PanasonicHttpCameraMonitor(IKeyed parent, GenericHttpClient client,
+        public PanasonicHttpCameraMonitor(IKeyed parent, string hostname,
             CommunicationMonitorConfig props)
             : base (parent, props.TimeToWarning, props.TimeToError)
         {
-            _client = client;
+            _hostname = hostname;
+            _client = new HttpClient();
             _pollInterval = props.PollInterval;
             _pollString = props.PollString;
 
             _timer = new CTimer(TimerCallback, props.PollString, Timeout.Infinite, _pollInterval);
-            _client.ResponseRecived += HandleResponseReceived;
 
             CrestronEnvironment.ProgramStatusEventHandler += eventType =>
                 {
@@ -31,15 +32,20 @@ namespace PanasonicCameraEpi
                     Debug.Console(1, this, "Program stopping, disposing of error timers...");
                     Stop();
                     _timer.Dispose();
+                    _client?.Dispose();
                 };
         }
 
-        private void HandleResponseReceived(object sender, GenericHttpClientEventArgs e)
+        private void HandleHttpResponse(HttpClientResponse response, HTTP_CALLBACK_ERROR error)
         {
-            if (e.Error != HTTP_CALLBACK_ERROR.COMPLETED)
-                return;
-
-            SetOk();
+            if (error == HTTP_CALLBACK_ERROR.COMPLETED && response.Code == 200)
+            {
+                SetOk();
+            }
+            else
+            {
+                Debug.Console(1, this, "HTTP request failed. Error: {0}, Code: {1}", error, response?.Code);
+            }
         }
 
         public override void Start()
@@ -57,12 +63,26 @@ namespace PanasonicCameraEpi
 
         private void TimerCallback(object obj)
         {
-            if (string.IsNullOrEmpty(_client.Client.HostName))
+            if (string.IsNullOrEmpty(_hostname))
             {
                 Debug.Console(0, "Panasonic camera hostname not valid");
                 return;
             }
-            _client.SendText(_pollString);
+
+            try
+            {
+                var request = new HttpClientRequest
+                {
+                    Url = new UrlParser($"http://{_hostname}/{_pollString}"),
+                    RequestType = RequestType.Get
+                };
+
+                _client.DispatchAsync(request, HandleHttpResponse);
+            }
+            catch (System.Exception ex)
+            {
+                Debug.Console(1, this, "Error sending HTTP request: {0}", ex.Message);
+            }
         }
 
         private void SetOk()

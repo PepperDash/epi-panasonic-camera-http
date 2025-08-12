@@ -1,4 +1,5 @@
 ﻿using System;
+using Crestron.SimplSharp.Net.Http;
 using PepperDash.Essentials.Core;
 using PepperDash.Core;
 
@@ -22,10 +23,10 @@ namespace PanasonicCameraEpi
 			Debug.Console(2, "HandleResponseRecived Response:{0}\r", e.Text);
         }
 
-		public void HandleResponseReceived(object sender, GenericHttpClientEventArgs e)
+		public void HandleHttpResponse(object sender, HttpClientResponse response)
 		{
-			Debug.Console(1, "Received Response: {0} Response:{1}, Error: {2}\r", e.RequestPath, e.ResponseText, e.Error);
-			_comsRx = e.ResponseText;
+			Debug.Console(1, "Received HTTP Response: Code={0}, Content={1}", response.Code, response.ContentString);
+			_comsRx = response.ContentString;
 			ProcessComs(_comsRx);
 			ComsFb.FireUpdate();
 		}
