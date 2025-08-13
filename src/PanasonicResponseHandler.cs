@@ -18,11 +18,6 @@ namespace PanasonicCameraEpi
 			ComsFb = new StringFeedback(() => _comsRx ?? string.Empty);
         }
 
-        public void HandleResponseReceeved(object sender, GenericCommMethodReceiveTextArgs e)
-        {
-			Debug.Console(2, "HandleResponseRecived Response:{0}\r", e.Text);
-        }
-
 		public void HandleHttpResponse(object sender, HttpClientResponse response)
 		{
 			Debug.Console(1, "Received HTTP Response: Code={0}, Content={1}", response.Code, response.ContentString);
@@ -34,13 +29,13 @@ namespace PanasonicCameraEpi
         void ProcessComs(string coms)
         {
             if (coms.Contains("p1")) 
-                OnCameraPowerdOn();
+                OnCameraPoweredOn();
 
             else if (coms.Contains("p0")) 
-                OnCameraPowerdOff();
+                OnCameraPoweredOff();
         }
 
-        void OnCameraPowerdOn()
+        void OnCameraPoweredOn()
         {
             var handler = CameraPoweredOn;
             if (handler == null) return;
@@ -48,7 +43,7 @@ namespace PanasonicCameraEpi
             handler.Invoke(this, EventArgs.Empty);
         }
 
-        void OnCameraPowerdOff()
+        void OnCameraPoweredOff()
         {
             var handler = CameraPoweredOff;
             if (handler == null) return;

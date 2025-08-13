@@ -23,7 +23,7 @@ namespace PanasonicCameraEpi
 
 			// No longer need to create GenericHttpClient - PanasonicCamera will handle HTTP directly
 			// Create a dummy communication object if needed, or pass null
-			return new PanasonicCamera(null, config);
+			return new PanasonicCamera(config);
 		}
 	}
 }

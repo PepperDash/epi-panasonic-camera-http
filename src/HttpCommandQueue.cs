@@ -1,4 +1,5 @@
 ﻿using System;
+using Crestron.SimplSharp;
 using Crestron.SimplSharp.Net.Http;
 using Crestron.SimplSharpPro.CrestronThread;
 using PepperDash.Core;
@@ -6,35 +7,67 @@ using PepperDash.Essentials.Core;
 
 namespace PanasonicCameraEpi
 {
-    public class HttpCommandQueue : CommandQueue
+    public class HttpCommandQueue : IDisposable, IKeyed
     {
         public event EventHandler<HttpClientResponse> ResponseReceived;
         private int _pacing = 130;
         private readonly HttpClient _httpClient;
         private readonly string _hostname;
+        private readonly CrestronQueue<string> _cmdQueue;
+        private readonly Thread _worker;
+        private readonly CEvent _wh = new CEvent();
+        
+        public string Key { get; private set; }
+        public bool Disposed { get; private set; }
 
         public HttpCommandQueue(string hostname)
-            : base(CreateDummyCommunication(hostname))
         {
             _hostname = hostname;
             _httpClient = new HttpClient();
+            Key = $"http-{hostname}";
+            _cmdQueue = new CrestronQueue<string>();
+            _worker = new Thread(ProcessQueue, null, Thread.eThreadStartOptions.Running) {Name = Key + "-Thread"};
+            
+            CrestronEnvironment.ProgramStatusEventHandler += programEvent =>
+            {
+                if (programEvent != eProgramStatusEventType.Stopping)
+                    return;
+
+                _cmdQueue.Clear();
+                Dispose();
+            };
         }
 
         public HttpCommandQueue(string hostname, int pacing)
-            : base(CreateDummyCommunication(hostname))
         {
             _hostname = hostname;
             _pacing = pacing;
             _httpClient = new HttpClient();
-        }
+            Key = $"http-{hostname}";
+            _cmdQueue = new CrestronQueue<string>();
+            _worker = new Thread(ProcessQueue, null, Thread.eThreadStartOptions.Running) {Name = Key + "-Thread"};
+            
+            CrestronEnvironment.ProgramStatusEventHandler += programEvent =>
+            {
+                if (programEvent != eProgramStatusEventType.Stopping)
+                    return;
 
-        private static IBasicCommunication CreateDummyCommunication(string hostname)
+                _cmdQueue.Clear();
+                Dispose();
+            };
+        }
+        
+
+        public void EnqueueCmd(string cmd)
         {
-            // Create a minimal dummy communication object for base class compatibility
-            return new DummyHttpCommunication(hostname);
-        }
+            if (Disposed)
+                return;
 
-        protected override object ProcessQueue(object obj)
+            _cmdQueue.Enqueue(cmd);
+            _wh.Set();
+        }
+        
+        private object ProcessQueue(object obj)
         {
             while (true)
             {
@@ -48,7 +81,7 @@ namespace PanasonicCameraEpi
                 }
                 if (path != null)
                 {
-                    if(string.IsNullOrEmpty(_hostname))
+                    if (string.IsNullOrEmpty(_hostname))
                     {
                         Debug.Console(0, this, "Panasonic camera hostname not valid");
                         return null;
@@ -101,27 +134,37 @@ namespace PanasonicCameraEpi
                 Debug.Console(1, this, "Panasonic camera client callback exception: {0}", ex.Message);
             }
         }
-    }
+        
+        #region IDisposable Members
 
-    // Minimal dummy implementation for base class compatibility
-    internal class DummyHttpCommunication : IBasicCommunication
-    {
-        public string Key { get; private set; }
-        public bool IsConnected => true;
-        public CommunicationGather LineGather { get; set; }
-
-        public event EventHandler<GenericCommMethodReceiveTextArgs> TextReceived;
-        public event EventHandler<GenericCommMethodReceiveBytesArgs> BytesReceived;
-
-        public DummyHttpCommunication(string hostname)
+        public void Dispose()
         {
-            Key = $"http-{hostname}";
+            Dispose(true);
+            CrestronEnvironment.GC.SuppressFinalize(this);
         }
 
-        public void Connect() { }
-        public void Disconnect() { }
-        public void SendText(string text) { }
-        public void SendBytes(byte[] bytes) { }
-        public void Dispose() { }
+        protected virtual void Dispose(bool disposing)
+        {
+            if (Disposed)
+                return;
+
+            if (disposing)
+            {
+                EnqueueCmd(null);
+                _worker.Abort();
+                _wh.Close();
+                _httpClient?.Dispose();
+            }
+
+            Disposed = true;
+        }
+
+        ~HttpCommandQueue()
+        {
+            Dispose(false);
+        }
+
+        #endregion
     }
+
 }

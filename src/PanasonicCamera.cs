@@ -14,13 +14,14 @@ using Crestron.SimplSharp;
 
 namespace PanasonicCameraEpi
 {
-    public class PanasonicCamera : ReconfigurableDevice, IBridgeAdvanced, IHasCameraPtzControl, IHasCameraOff, ICommunicationMonitor, IRoutingSource
+    public class PanasonicCamera : ReconfigurableDevice, IBridgeAdvanced, IHasCameraPtzControl, IHasCameraOff, ICommunicationMonitor, IRoutingSource, IDisposable
     {
         private readonly StatusMonitorBase _monitor;
         private readonly PanasonicCmdBuilder _cmd;
         private readonly PanasonicResponseHandler _responseHandler;
-        private readonly CommandQueue _queue;
+        private readonly HttpCommandQueue _queue;
         private readonly Dictionary<uint, PanasonicCameraPreset> _presets;
+        private CTimer _presetSavedTimer;
 
         public bool IsPoweredOn { get; private set; }
         public Dictionary<uint, StringFeedback> PresetNamesFeedbacks { get; private set; }
@@ -48,7 +49,7 @@ namespace PanasonicCameraEpi
         }
         private bool _PresetSavedBool { get; set; }
 
-        public PanasonicCamera(IBasicCommunication comms, DeviceConfig config)
+        public PanasonicCamera(DeviceConfig config)
             : base(config)
         {
             OutputPorts = new RoutingPortCollection<RoutingOutputPort>();
@@ -70,22 +71,18 @@ namespace PanasonicCameraEpi
             var hostname = cameraConfig.Control?.TcpSshProperties?.Address;
             if (string.IsNullOrEmpty(hostname))
             {
-                _monitor = new GenericCommunicationMonitor(this, comms, cameraConfig.CommunicationMonitor);
-                comms.TextReceived += _responseHandler.HandleResponseReceeved;
-                throw new NotImplementedException("Need to create a command queue for serial");
+                throw new NotImplementedException("Hostname is empty");
 			}
             _monitor = new PanasonicHttpCameraMonitor(this, hostname, cameraConfig.CommunicationMonitor);
-            HttpCommandQueue queue; 
             if (cameraConfig.Pacing > 0)
             {
-                 queue = new HttpCommandQueue(hostname, cameraConfig.Pacing);
+                 _queue = new HttpCommandQueue(hostname, cameraConfig.Pacing);
             }
             else
             {
-                 queue = new HttpCommandQueue(hostname);
+                 _queue = new HttpCommandQueue(hostname);
             }
-            queue.ResponseReceived += _responseHandler.HandleHttpResponse;
-            _queue = queue;
+            _queue.ResponseReceived += _responseHandler.HandleHttpResponse;
 
             _cmd = new PanasonicCmdBuilder(12, 25, 12, cameraConfig.HomeCommand, cameraConfig.PrivacyCommand);
             _presets = cameraConfig.Presets.ToDictionary(x => (uint)x.Id);
@@ -316,7 +313,10 @@ namespace PanasonicCameraEpi
         {
             _queue.EnqueueCmd(_cmd.PresetSaveCommand(preset));
             PresetSavedBool = true;
-            new CTimer( (o) => PresetSavedBool = false, 5000);
+            
+            _presetSavedTimer?.Stop();
+            _presetSavedTimer?.Dispose();
+            _presetSavedTimer = new CTimer( (o) => PresetSavedBool = false, 5000);
         }
 
 		/// <summary>
@@ -501,5 +501,12 @@ namespace PanasonicCameraEpi
         #endregion
 
         public RoutingPortCollection<RoutingOutputPort> OutputPorts { get; private set; }
+        
+        public void Dispose()
+        {
+            _presetSavedTimer?.Stop();
+            _presetSavedTimer?.Dispose();
+            _presetSavedTimer = null;
+        }
     }
 }
