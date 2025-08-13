@@ -2,6 +2,7 @@
 using Crestron.SimplSharp.Net.Http;
 using PepperDash.Core;
 using PepperDash.Essentials.Core;
+using Serilog.Events;
 
 namespace PanasonicCameraEpi
 {
@@ -29,7 +30,7 @@ namespace PanasonicCameraEpi
                     if (eventType != eProgramStatusEventType.Stopping)
                         return;
 
-                    Debug.Console(1, this, "Program stopping, disposing of error timers...");
+                    Debug.LogMessage(LogEventLevel.Information, this, "Program stopping, disposing of error timers...");
                     Stop();
                     _timer.Dispose();
                     _client?.Dispose();
@@ -44,7 +45,7 @@ namespace PanasonicCameraEpi
             }
             else
             {
-                Debug.Console(1, this, "HTTP request failed. Error: {0}, Code: {1}", error, response?.Code);
+                Debug.LogMessage(LogEventLevel.Warning, this, "HTTP request failed. Error: {0}, Code: {1}", error, response?.Code);
             }
         }
 
@@ -65,7 +66,7 @@ namespace PanasonicCameraEpi
         {
             if (string.IsNullOrEmpty(_hostname))
             {
-                Debug.Console(0, "Panasonic camera hostname not valid");
+                Debug.LogMessage(LogEventLevel.Error, "PanasonicCameraMonitor", "Panasonic camera hostname not valid");
                 return;
             }
 
@@ -81,7 +82,7 @@ namespace PanasonicCameraEpi
             }
             catch (System.Exception ex)
             {
-                Debug.Console(1, this, "Error sending HTTP request: {0}", ex.Message);
+                Debug.LogMessage(LogEventLevel.Error, this, "Error sending HTTP request: {0}", ex.Message);
             }
         }
 

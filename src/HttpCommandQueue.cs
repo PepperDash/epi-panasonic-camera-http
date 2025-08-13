@@ -4,6 +4,7 @@ using Crestron.SimplSharp.Net.Http;
 using Crestron.SimplSharpPro.CrestronThread;
 using PepperDash.Core;
 using PepperDash.Essentials.Core;
+using Serilog.Events;
 
 namespace PanasonicCameraEpi
 {
@@ -83,7 +84,7 @@ namespace PanasonicCameraEpi
                 {
                     if (string.IsNullOrEmpty(_hostname))
                     {
-                        Debug.Console(0, this, "Panasonic camera hostname not valid");
+                        Debug.LogMessage(LogEventLevel.Error, this, "Panasonic camera hostname not valid");
                         return null;
                     }
                     try
@@ -94,14 +95,14 @@ namespace PanasonicCameraEpi
                             RequestType = RequestType.Get
                         };
 
-                        Debug.Console(1, this, "Dispatching request: {0}", request.Url.PathAndParams);
+                        Debug.LogMessage(LogEventLevel.Information, this, "Dispatching request: {0}", request.Url.PathAndParams);
 
                         _httpClient.DispatchAsync(request, OnResponseReceived);
                         Thread.Sleep(_pacing); //command gap of 130 recommended by documentation
                     }
                     catch (Exception ex)
                     {
-                        Debug.Console(1, this, "Caught an exception in the CmdProcessor {0}\r{1}\r{2}", ex.Message, ex.InnerException, ex.StackTrace);
+                        Debug.LogMessage(LogEventLevel.Error, this, "Caught an exception in the CmdProcessor {0}\r{1}\r{2}", ex.Message, ex.InnerException, ex.StackTrace);
                     }
                 }
                 else _wh.Wait();
@@ -114,15 +115,15 @@ namespace PanasonicCameraEpi
         {
             try
             {
-                Debug.Console(1, this, "Panasonic camera client response code: {0}", response.Code);
+                Debug.LogMessage(LogEventLevel.Information, this, "Panasonic camera client response code: {0}", response.Code);
                 if (error != HTTP_CALLBACK_ERROR.COMPLETED)
                 {
-                    Debug.Console(1, this, "Panasonic camera client callback error: {0}", error);
+                    Debug.LogMessage(LogEventLevel.Warning, this, "Panasonic camera client callback error: {0}", error);
                     return;
                 }
                 if (response.Code < 200 || response.Code >= 300)
                 {
-                    Debug.Console(1, this, "Panasonic camera client callback http code error: {0}", response.Code);
+                    Debug.LogMessage(LogEventLevel.Warning, this, "Panasonic camera client callback http code error: {0}", response.Code);
                     return;
                 }
 
@@ -131,7 +132,7 @@ namespace PanasonicCameraEpi
             }
             catch (Exception ex)
             {
-                Debug.Console(1, this, "Panasonic camera client callback exception: {0}", ex.Message);
+                Debug.LogMessage(LogEventLevel.Error, this, "Panasonic camera client callback exception: {0}", ex.Message);
             }
         }
         

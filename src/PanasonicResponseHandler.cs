@@ -2,6 +2,7 @@
 using Crestron.SimplSharp.Net.Http;
 using PepperDash.Essentials.Core;
 using PepperDash.Core;
+using Serilog.Events;
 
 namespace PanasonicCameraEpi
 {
@@ -15,12 +16,12 @@ namespace PanasonicCameraEpi
 
         public PanasonicResponseHandler()
         {
-			ComsFb = new StringFeedback(() => _comsRx ?? string.Empty);
+			ComsFb = new StringFeedback("ComsFeedback", () => _comsRx ?? string.Empty);
         }
 
 		public void HandleHttpResponse(object sender, HttpClientResponse response)
 		{
-			Debug.Console(1, "Received HTTP Response: Code={0}, Content={1}", response.Code, response.ContentString);
+			Debug.LogMessage(LogEventLevel.Information, "PanasonicResponseHandler", "Received HTTP Response: Code={0}, Content={1}", response.Code, response.ContentString);
 			_comsRx = response.ContentString;
 			ProcessComs(_comsRx);
 			ComsFb.FireUpdate();

@@ -10,6 +10,7 @@ using PepperDash.Essentials.Core.Devices;
 using PepperDash.Essentials.Devices.Common.Cameras;
 using PepperDash.Core;
 using Crestron.SimplSharp;
+using Serilog.Events;
 
 
 namespace PanasonicCameraEpi
@@ -141,12 +142,12 @@ namespace PanasonicCameraEpi
 
         private void HandleMonitorStatusChange(object sender, MonitorStatusChangeEventArgs e)
         {
-            Debug.Console(1, this, "STATUS: '{0}'", e.Message);
+            Debug.LogMessage(LogEventLevel.Information, this, "STATUS: '{0}'", e.Message);
         }
 
         private void SetupFeedbacks()
         {
-            NameFeedback = new StringFeedback(() => Name);
+            NameFeedback = new StringFeedback("NameFeedback", () => Name);
             NameFeedback.FireUpdate();
 
             for (uint x = 1; x <= 10; x++)
@@ -158,24 +159,24 @@ namespace PanasonicCameraEpi
                 _presets.Add(index, new PanasonicCameraPreset {Id = (int) index, Name = String.Empty});
             }
 
-            NumberOfPresetsFeedback = new IntFeedback(() => _presets.Values.Count(x => !String.IsNullOrEmpty(x.Name)));
+            NumberOfPresetsFeedback = new IntFeedback("NumberOfPresetsFeedback", () => _presets.Values.Count(x => !String.IsNullOrEmpty(x.Name)));
             NumberOfPresetsFeedback.FireUpdate();
 
-            PanSpeedFeedback = new IntFeedback(() => PanSpeed);
-            TiltSpeedFeedback = new IntFeedback(() => TiltSpeed);
-            ZoomSpeedFeedback = new IntFeedback(() => ZoomSpeed);
-            PresetSavedFeedback = new BoolFeedback(() => PresetSavedBool); 
+            PanSpeedFeedback = new IntFeedback("PanSpeedFeedback", () => PanSpeed);
+            TiltSpeedFeedback = new IntFeedback("TiltSpeedFeedback", () => TiltSpeed);
+            ZoomSpeedFeedback = new IntFeedback("ZoomSpeedFeedback", () => ZoomSpeed);
+            PresetSavedFeedback = new BoolFeedback("PresetSavedFeedback", () => PresetSavedBool); 
 
             PanSpeedFeedback.FireUpdate();
             TiltSpeedFeedback.FireUpdate();
             ZoomSpeedFeedback.FireUpdate();
 
-            PresetNamesFeedbacks = _presets.ToDictionary(x => x.Key, x => new StringFeedback(() => x.Value.Name));
+            PresetNamesFeedbacks = _presets.ToDictionary(x => x.Key, x => new StringFeedback($"PresetName{x.Key}", () => x.Value.Name));
 
             foreach (var feedback in PresetNamesFeedbacks)
                 feedback.Value.FireUpdate();
 
-            CameraIsOffFeedback = new BoolFeedback(() => !IsPoweredOn);
+            CameraIsOffFeedback = new BoolFeedback("CameraIsOffFeedback", () => !IsPoweredOn);
             CameraIsOffFeedback.FireUpdate(); 
         }
 
@@ -329,18 +330,17 @@ namespace PanasonicCameraEpi
 			{
 			    if (!(address.Length > 2 & Config.Properties["control"]["tcpSshProperties"]["address"].ToString() != address))
 			        return;
-			    Debug.Console(2, this, "Changing IPAddress: {0}", address);
+			    Debug.LogMessage(LogEventLevel.Information, this, "Changing IPAddress: {0}", address);
 
 			    Config.Properties["control"]["tcpSshProperties"]["address"] = address;
-			    Debug.Console(2, this, "{0}", Config.Properties.ToString());
+			    Debug.LogMessage(LogEventLevel.Debug, this, "{0}", Config.Properties.ToString());
 			    SetConfig(Config);
 			    // Update hostname in config - the monitor will use the new address
 			    // Note: With HttpClient approach, the monitor handles the hostname directly
 			}
 			catch (Exception e)
 			{
-				if (Debug.Level == 2)
-					Debug.Console(2, this, "Error SetIpAddress: '{0}'", e);
+				Debug.LogMessage(LogEventLevel.Error, this, "Error SetIpAddress: '{0}'", e);
 			}
 		}
 
@@ -394,8 +394,8 @@ namespace PanasonicCameraEpi
                 joinMap.SetCustomJoinData(customJoins);
             }
 
-            Debug.Console(1, "Linking to Trilist '{0}'", trilist.ID.ToString("X"));
-            Debug.Console(0, "Linking to Bridge Type {0}", GetType().Name);
+            Debug.LogMessage(LogEventLevel.Information, "PanasonicCamera", "Linking to Trilist '{0}'", trilist.ID.ToString("X"));
+            Debug.LogMessage(LogEventLevel.Information, "PanasonicCamera", "Linking to Bridge Type {0}", GetType().Name);
 
             // links to bridge
             trilist.SetString(joinMap.DeviceName.JoinNumber, Name);
@@ -466,7 +466,7 @@ namespace PanasonicCameraEpi
 
             foreach (var preset in PresetNamesFeedbacks)
             {
-                Debug.Console(2, "foreach: preset.Key: {0} preset.Value: {1}", preset.Key, preset.Value);
+                Debug.LogMessage(LogEventLevel.Debug, "PanasonicCamera", "foreach: preset.Key: {0} preset.Value: {1}", preset.Key, preset.Value);
                 var presetNumber = preset.Key;
                 var nameJoin = joinMap.PresetNames.JoinNumber + presetNumber - 1;
                 preset.Value.LinkInputSig(trilist.StringInput[nameJoin]);
