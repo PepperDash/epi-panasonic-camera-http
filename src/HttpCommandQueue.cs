@@ -1,129 +1,166 @@
 ﻿using System;
-using Crestron.SimplSharp;
-using Crestron.SimplSharp.Net.Http;
-using Crestron.SimplSharpPro.CrestronThread;
+using System.Net;
+using System.IO;
 using PepperDash.Core;
-using PepperDash.Essentials.Core;
-using Serilog.Events;
+using PepperDash.Core.Logging;
 
 namespace PanasonicCameraEpi
 {
-    public class HttpCommandQueue : IDisposable, IKeyed
+    public class HttpResponse
     {
-        public event EventHandler<HttpClientResponse> ResponseReceived;
-        private int _pacing = 130;
-        private readonly HttpClient _httpClient;
-        private readonly string _hostname;
-        private readonly CrestronQueue<string> _cmdQueue;
-        private readonly Thread _worker;
-        private readonly CEvent _wh = new CEvent();
-        
+        public int StatusCode { get; set; }
+        public string Content { get; set; }
+    }
+
+    public class HttpRequestData
+    {
+        public string Path { get; set; }
+        public string Method { get; set; }
+    }
+
+    public class HttpCommandQueue : IKeyed, IDisposable
+    {
+        public event EventHandler<HttpResponse> ResponseReceived;
+        public event EventHandler<string> StatusResponseReceived;
+        private readonly string hostname;
+
         public string Key { get; private set; }
         public bool Disposed { get; private set; }
 
         public HttpCommandQueue(string hostname)
         {
-            _hostname = hostname;
-            _httpClient = new HttpClient();
+            if (string.IsNullOrEmpty(hostname))
+                throw new ArgumentException("Hostname cannot be null or empty", nameof(hostname));
+                
+            this.hostname = hostname;
             Key = $"http-{hostname}";
-            _cmdQueue = new CrestronQueue<string>();
-            _worker = new Thread(ProcessQueue, null, Thread.eThreadStartOptions.Running) {Name = Key + "-Thread"};
-            
-            CrestronEnvironment.ProgramStatusEventHandler += programEvent =>
-            {
-                if (programEvent != eProgramStatusEventType.Stopping)
-                    return;
-
-                _cmdQueue.Clear();
-                Dispose();
-            };
         }
 
-        public HttpCommandQueue(string hostname, int pacing)
+        public HttpCommandQueue(string hostname, string parentDeviceKey)
         {
-            _hostname = hostname;
-            _pacing = pacing;
-            _httpClient = new HttpClient();
-            Key = $"http-{hostname}";
-            _cmdQueue = new CrestronQueue<string>();
-            _worker = new Thread(ProcessQueue, null, Thread.eThreadStartOptions.Running) {Name = Key + "-Thread"};
+            if (string.IsNullOrEmpty(hostname))
+                throw new ArgumentException("Hostname cannot be null or empty", nameof(hostname));
             
-            CrestronEnvironment.ProgramStatusEventHandler += programEvent =>
-            {
-                if (programEvent != eProgramStatusEventType.Stopping)
-                    return;
-
-                _cmdQueue.Clear();
-                Dispose();
-            };
+            if (string.IsNullOrEmpty(parentDeviceKey))
+                throw new ArgumentException("Parent device key cannot be null or empty", nameof(parentDeviceKey));
+                
+            this.hostname = hostname;
+            Key = $"http-{parentDeviceKey}";
         }
         
 
-        public void EnqueueCmd(string cmd)
+        public void EnqueueCmd(string path)
+        {
+            if (string.IsNullOrEmpty(path))
+                throw new ArgumentException("Path cannot be null or empty", nameof(path));
+
+            var requestData = new HttpRequestData
+            {
+                Path = path,
+                Method = "GET"
+            };
+
+            this.LogDebug("Sending {0} request to: {1}", requestData.Method, path);
+
+            try
+            {
+                var response = SendHttpRequest(requestData);
+                if (response != null)
+                {
+                    this.LogDebug("Received HTTP response: {0}", response.Content);
+                    OnResponseReceived(response);
+                }
+            }
+            catch (System.Net.Sockets.SocketException ex)
+            {
+                this.LogWarning("Device at {0} is not reachable (network error): {1}", hostname, ex.Message);
+                return;
+            }
+            catch (WebException ex)
+            {
+                this.LogWarning("Device at {0} web request failed: {1}", hostname, ex.Message);
+                return;
+            }
+            catch (Exception ex)
+            {
+                this.LogError("HTTP request failed for path '{0}': {1}", path, ex.Message);
+                this.LogDebug("HTTP request exception details: {0}", ex.StackTrace);
+                throw;
+            }
+        }
+        
+        private HttpResponse SendHttpRequest(HttpRequestData requestData)
         {
             if (Disposed)
-                return;
-
-            _cmdQueue.Enqueue(cmd);
-            _wh.Set();
+                throw new ObjectDisposedException(nameof(HttpCommandQueue));
+                
+            var url = $"http://{hostname}/{requestData.Path}";
+            var request = (HttpWebRequest)WebRequest.Create(url);
+            
+            // Configure connection management
+            request.Method = requestData.Method;
+            request.Timeout = 10000; // 10 second timeout
+            request.ReadWriteTimeout = 10000; // 10 second read/write timeout
+            request.KeepAlive = false; // Disable keep-alive for simpler connection management
+            request.ProtocolVersion = HttpVersion.Version11;
+            request.ServicePoint.ConnectionLimit = 10; // Limit concurrent connections
+            request.ServicePoint.MaxIdleTime = 30000; // 30 second idle timeout
+            
+            HttpWebResponse response = null;
+            try
+            {
+                response = (HttpWebResponse)request.GetResponse();
+                using (var stream = response.GetResponseStream())
+                using (var reader = new StreamReader(stream))
+                {
+                    var content = reader.ReadToEnd();
+                    return new HttpResponse
+                    {
+                        StatusCode = (int)response.StatusCode,
+                        Content = content
+                    };
+                }
+            }
+            catch (WebException ex) when (ex.Response is HttpWebResponse errorResponse)
+            {
+                try
+                {
+                    using (var stream = errorResponse.GetResponseStream())
+                    using (var reader = new StreamReader(stream))
+                    {
+                        var content = reader.ReadToEnd();
+                        return new HttpResponse
+                        {
+                            StatusCode = (int)errorResponse.StatusCode,
+                            Content = content
+                        };
+                    }
+                }
+                finally
+                {
+                    errorResponse?.Close();
+                }
+            }
+            finally
+            {
+                response?.Close();
+            }
         }
         
-        private object ProcessQueue(object obj)
-        {
-            while (true)
-            {
-                string path = null;
-
-                if (_cmdQueue.Count > 0)
-                {
-                    path = _cmdQueue.Dequeue();
-                    if (path == null)
-                        break;
-                }
-                if (path != null)
-                {
-                    if (string.IsNullOrEmpty(_hostname))
-                    {
-                        Debug.LogMessage(LogEventLevel.Error, this, "Panasonic camera hostname not valid");
-                        return null;
-                    }
-                    try
-                    {
-                        var request = new HttpClientRequest
-                        {
-                            Url = new UrlParser($"http://{_hostname}/{path}"),
-                            RequestType = RequestType.Get
-                        };
-
-                        Debug.LogMessage(LogEventLevel.Information, this, "Dispatching request: {0}", request.Url.PathAndParams);
-
-                        _httpClient.DispatchAsync(request, OnResponseReceived);
-                        Thread.Sleep(_pacing); //command gap of 130 recommended by documentation
-                    }
-                    catch (Exception ex)
-                    {
-                        Debug.LogMessage(LogEventLevel.Error, this, "Caught an exception in the CmdProcessor {0}\r{1}\r{2}", ex.Message, ex.InnerException, ex.StackTrace);
-                    }
-                }
-                else _wh.Wait();
-            }
-
-            return null;
-        }
-
-        private void OnResponseReceived(HttpClientResponse response, HTTP_CALLBACK_ERROR error)
+        private void OnResponseReceived(HttpResponse response)
         {
             try
             {
-                Debug.LogMessage(LogEventLevel.Information, this, "Panasonic camera client response code: {0}", response.Code);
-                if (error != HTTP_CALLBACK_ERROR.COMPLETED)
+                if (response == null)
                 {
-                    Debug.LogMessage(LogEventLevel.Warning, this, "Panasonic camera client callback error: {0}", error);
+                    this.LogWarning("Panasonic camera callback received null response - device may be unreachable");
                     return;
                 }
-                if (response.Code < 200 || response.Code >= 300)
+
+                this.LogInformation("Panasonic camera response code: {0}", response.StatusCode);
+                if (response.StatusCode < 200 || response.StatusCode >= 300)
                 {
-                    Debug.LogMessage(LogEventLevel.Warning, this, "Panasonic camera client callback http code error: {0}", response.Code);
+                    this.LogWarning("Panasonic camera callback http code error: {0}", response.StatusCode);
                     return;
                 }
 
@@ -132,40 +169,49 @@ namespace PanasonicCameraEpi
             }
             catch (Exception ex)
             {
-                Debug.LogMessage(LogEventLevel.Error, this, "Panasonic camera client callback exception: {0}", ex.Message);
+                this.LogError("Panasonic camera callback exception: {0}", ex.Message);
+                this.LogDebug("Exception details: {0}", ex.StackTrace);
             }
         }
         
-        #region IDisposable Members
-
+        #region IDisposable Implementation
+        
         public void Dispose()
         {
             Dispose(true);
-            CrestronEnvironment.GC.SuppressFinalize(this);
+            GC.SuppressFinalize(this);
         }
-
+        
         protected virtual void Dispose(bool disposing)
         {
             if (Disposed)
                 return;
-
+                
             if (disposing)
             {
-                EnqueueCmd(null);
-                _worker.Abort();
-                _wh.Close();
-                _httpClient?.Dispose();
+                // Clean up managed resources
+                try
+                {
+                    // Close any open service point connections
+                    var servicePoint = ServicePointManager.FindServicePoint(new Uri($"http://{hostname}"));
+                    servicePoint?.CloseConnectionGroup("");
+                }
+                catch (Exception ex)
+                {
+                    this.LogDebug("Error closing service point connections: {0}", ex.Message);
+                }
             }
-
+            
             Disposed = true;
         }
-
+        
         ~HttpCommandQueue()
         {
             Dispose(false);
         }
-
+        
         #endregion
+        
     }
 
 }
