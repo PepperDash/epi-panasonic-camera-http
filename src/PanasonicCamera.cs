@@ -15,13 +15,17 @@ using Serilog.Events;
 
 namespace PanasonicCameraEpi
 {
-    public class PanasonicCamera : ReconfigurableDevice, IBridgeAdvanced, IHasCameraPtzControl, IHasCameraOff, ICommunicationMonitor, IRoutingSource, IDisposable
+    public class PanasonicCamera : CameraBase, IBridgeAdvanced, IHasCameraPtzControl, IHasCameraPresets, IHasCameraOff, ICommunicationMonitor, IRoutingSource, IDisposable
     {
         private readonly StatusMonitorBase _monitor;
         private readonly PanasonicCmdBuilder _cmd;
         private readonly PanasonicResponseHandler _responseHandler;
         private readonly HttpCommandQueue _queue;
         private readonly Dictionary<uint, PanasonicCameraPreset> _presets;
+
+        public List<CameraPreset> Presets { get; }
+
+        public event EventHandler<EventArgs> PresetsListHasChanged;
         private CTimer _presetSavedTimer;
 
         public bool IsPoweredOn { get; private set; }
@@ -75,14 +79,7 @@ namespace PanasonicCameraEpi
                 throw new NotImplementedException("Hostname is empty");
 			}
             _monitor = new PanasonicHttpCameraMonitor(this, hostname, cameraConfig.CommunicationMonitor);
-            if (cameraConfig.Pacing > 0)
-            {
-                 _queue = new HttpCommandQueue(hostname, cameraConfig.Pacing);
-            }
-            else
-            {
-                 _queue = new HttpCommandQueue(hostname);
-            }
+            _queue = new HttpCommandQueue(hostname, this.Key);
             _queue.ResponseReceived += _responseHandler.HandleHttpResponse;
 
             _cmd = new PanasonicCmdBuilder(12, 25, 12, cameraConfig.HomeCommand, cameraConfig.PrivacyCommand);
@@ -302,7 +299,7 @@ namespace PanasonicCameraEpi
             _queue.EnqueueCmd(PanasonicCmdBuilder.BuildCustomCommand(cmd));
         }
 
-        public void RecallPreset(int preset)
+        public void PresetSelect(int preset)
         {
             if (!IsPoweredOn)
                 _queue.EnqueueCmd(_cmd.PowerOnCommand);
@@ -310,7 +307,7 @@ namespace PanasonicCameraEpi
             _queue.EnqueueCmd(_cmd.PresetRecallCommand(preset));	        
         }
 
-        public void SavePreset(int preset)
+        public void PresetStore(int preset, string description = null)
         {
             _queue.EnqueueCmd(_cmd.PresetSaveCommand(preset));
             PresetSavedBool = true;
@@ -455,7 +452,7 @@ namespace PanasonicCameraEpi
             trilist.SetSigTrueAction(joinMap.PowerOn.JoinNumber, CameraOn);
             trilist.SetSigTrueAction(joinMap.PowerOff.JoinNumber, CameraOff);
             trilist.SetSigTrueAction(joinMap.PrivacyOn.JoinNumber, PositionPrivacy);
-            trilist.SetSigTrueAction(joinMap.PrivacyOff.JoinNumber, () => RecallPreset(1));
+            trilist.SetSigTrueAction(joinMap.PrivacyOff.JoinNumber, () => PresetSelect(1));
             trilist.SetSigTrueAction(joinMap.Home.JoinNumber, PositionHome);
 
             trilist.SetUShortSigAction(joinMap.PanSpeed.JoinNumber, panSpeed => PanSpeed = panSpeed);
@@ -475,8 +472,8 @@ namespace PanasonicCameraEpi
                 var recallJoin = joinMap.PresetRecall.JoinNumber + presetNumber - 1;
                 var saveJoin = joinMap.PresetSave.JoinNumber + presetNumber - 1;
 
-                trilist.SetSigHeldAction(recallJoin, 5000, () => SavePreset((int)presetNumber), () => RecallPreset((int)presetNumber));
-                trilist.SetSigTrueAction(saveJoin, () => SavePreset((int)presetNumber));
+                trilist.SetSigHeldAction(recallJoin, 5000, () => PresetStore((int)presetNumber), () => PresetSelect((int)presetNumber));
+                trilist.SetSigTrueAction(saveJoin, () => PresetStore((int)presetNumber));
                 trilist.SetStringSigAction(recallJoin, s => UpdatePresetName((int)presetNumber, s));
             }
 
