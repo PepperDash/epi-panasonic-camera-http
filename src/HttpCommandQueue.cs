@@ -156,8 +156,6 @@ namespace PanasonicCameraEpi
                     this.LogWarning("Panasonic camera callback received null response - device may be unreachable");
                     return;
                 }
-
-                this.LogInformation("Panasonic camera response code: {0}", response.StatusCode);
                 if (response.StatusCode < 200 || response.StatusCode >= 300)
                 {
                     this.LogWarning("Panasonic camera callback http code error: {0}", response.StatusCode);
