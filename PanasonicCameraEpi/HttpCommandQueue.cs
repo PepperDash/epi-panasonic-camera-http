@@ -8,14 +8,27 @@ namespace PanasonicCameraEpi
 {
     public class HttpCommandQueue : CommandQueue
     {
+        private volatile bool _cameraBusy;
+
+        public void WireBusy(PanasonicResponseHandler rh)
+        {
+            if (rh == null) return;
+            rh.BusyChanged += delegate(object s, PanasonicResponseHandler.BusyChangedEventArgs e)
+            {
+                _cameraBusy = e.IsBusy;
+            };
+        }
+
         public event EventHandler<GenericHttpClientEventArgs> ResponseReceived;
-        private int _pacing = 130; 
+
+        // Panasonic spec tolerates >=40ms; 130ms is conservative and stable
+        private int _pacing = 130;
 
         public HttpCommandQueue(IBasicCommunication coms)
             : base(coms)
         {
-
         }
+
         public HttpCommandQueue(IBasicCommunication coms, int pacing)
             : base(coms)
         {
@@ -28,7 +41,7 @@ namespace PanasonicCameraEpi
             if (client == null)
                 throw new NullReferenceException("client");
 
-            while (true)
+            while (true) // keep the worker alive
             {
                 string path = null;
 
@@ -36,35 +49,66 @@ namespace PanasonicCameraEpi
                 {
                     path = _cmdQueue.Dequeue();
                     if (path == null)
-                        break;
+                    {
+                        Thread.Sleep(20);
+                        continue;
+                    }
                 }
+
                 if (path != null)
                 {
-                    if(string.IsNullOrEmpty(client.Client.HostName))
+                    if (string.IsNullOrEmpty(client.Client.HostName))
                     {
-                        Debug.Console(0, client, "Panasonic camera hostname not valid");
-                        return null;
+                        Debug.Console(0, "Panasonic camera hostname not valid");
+                        Thread.Sleep(1000); // don't kill the thread
+                        continue;
                     }
+
                     try
                     {
+                        // Back off while camera is busy (e.g., RP150 is moving it)
+                        if (_cameraBusy)
+                        {
+                            var waited = 0;
+                            while (_cameraBusy && waited < 2000) // up to 2s
+                            {
+                                Thread.Sleep(50);
+                                waited += 50;
+                            }
+
+                            // Still busy? Requeue and try later
+                            if (_cameraBusy)
+                            {
+                                _cmdQueue.Enqueue(path);
+                                // optional: signal wait handle here if your base queue expects it
+                                continue;
+                            }
+                        }
+
                         var request = new HttpClientRequest();
-                        var url = String.Format("http://{0}/{1}", client.Client.HostName, path);
+                        var url = string.Format("http://{0}/{1}", client.Client.HostName, path);
                         request.Url.Parse(url);
 
-                        Debug.Console(1, client, "Dispatching request: {0}", request.Url.PathAndParams);
+                        Debug.Console(1, "Dispatching request: {0}", request.Url.PathAndParams);
 
                         client.Client.DispatchAsync(request, OnResponseReceived);
-                        Thread.Sleep(_pacing); //command gap of 130 recommended by documentation
+
+                        // Panasonic pacing
+                        Thread.Sleep(_pacing);
                     }
                     catch (Exception ex)
                     {
-                        Debug.Console(1, client, "Caught an exception in the CmdProcessor {0}\r{1}\r{2}", ex.Message, ex.InnerException, ex.StackTrace);
+                        Debug.Console(1, "Caught an exception in the CmdProcessor {0}\r{1}\r{2}",
+                            ex.Message, ex.InnerException, ex.StackTrace);
+                        Thread.Sleep(100); // keep thread alive
                     }
                 }
-                else _wh.Wait();
+                else
+                {
+                    // Wait until someone enqueues
+                    _wh.Wait();
+                }
             }
-
-            return null;
         }
 
         private void OnResponseReceived(HttpClientResponse response, HTTP_CALLBACK_ERROR error)
@@ -72,22 +116,26 @@ namespace PanasonicCameraEpi
             try
             {
                 Debug.Console(1, this, "Panasonic camera client response code: {0}", response.Code);
+
                 if (error != HTTP_CALLBACK_ERROR.COMPLETED)
                 {
                     Debug.Console(1, this, "Panasonic camera client callback error: {0}", error);
                     return;
                 }
+
                 if (response.Code < 200 || response.Code >= 300)
                 {
                     Debug.Console(1, this, "Panasonic camera client callback http code error: {0}", response.Code);
                     return;
                 }
 
-                if (ResponseReceived == null)
+                var handler = ResponseReceived;
+                if (handler == null)
                     return;
 
-                ResponseReceived.Invoke(this, new GenericHttpClientEventArgs(response.ContentString, response.ResponseUrl, HTTP_CALLBACK_ERROR.COMPLETED));
-
+                // Essentials GenericHttpClientEventArgs signature in your repo:
+                // (string responseText, string requestPath, HTTP_CALLBACK_ERROR error)
+                handler(this, new GenericHttpClientEventArgs(response.ContentString, response.ResponseUrl, HTTP_CALLBACK_ERROR.COMPLETED));
             }
             catch (Exception ex)
             {
