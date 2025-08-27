@@ -1,5 +1,5 @@
 ﻿using System;
-using Crestron.SimplSharp.Net.Http;         
+using Crestron.SimplSharp.Net.Http;
 using PepperDash.Essentials.Core;
 using PepperDash.Core;
 
