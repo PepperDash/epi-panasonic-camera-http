@@ -133,8 +133,6 @@ namespace PanasonicCameraEpi
                 if (handler == null)
                     return;
 
-                // Essentials GenericHttpClientEventArgs signature in your repo:
-                // (string responseText, string requestPath, HTTP_CALLBACK_ERROR error)
                 handler(this, new GenericHttpClientEventArgs(response.ContentString, response.ResponseUrl, HTTP_CALLBACK_ERROR.COMPLETED));
             }
             catch (Exception ex)
