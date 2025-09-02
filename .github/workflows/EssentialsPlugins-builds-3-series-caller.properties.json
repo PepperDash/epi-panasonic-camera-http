@@ -1,0 +1,5 @@
+{
+  "name": "PepperDash Essentials Plugin Build",
+  "description": "Call the EPI build workflow for 3 Series plugins",
+  "iconName": "logo-essentials-blue"
+}
