@@ -7,10 +7,10 @@ on:
 
 jobs:
   getVersion:
-    uses: PepperDash/workflow-templates/.github/workflows/essentialsplugins-getversion.yml@main
+    uses: PepperDash/workflow-templates/.github/workflows/essentialsplugins-getversion.yml@make-model-updates
     secrets: inherit
   build-3Series:
-    uses: PepperDash/workflow-templates/.github/workflows/essentialsplugins-3Series-builds.yml@main
+    uses: PepperDash/workflow-templates/.github/workflows/essentialsplugins-3Series-builds.yml@make-model-updates
     secrets: inherit
     needs: getVersion
     if: needs.getVersion.outputs.newVersion == 'true'
