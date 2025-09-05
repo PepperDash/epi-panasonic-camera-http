@@ -66,23 +66,12 @@ namespace PanasonicCameraEpi
 
                     try
                     {
-                        // Back off while camera is busy (e.g., RP150 is moving it)
+                        // Skip command while camera is busy (do not send or re-enqueue)
                         if (_cameraBusy)
                         {
-                            var waited = 0;
-                            while (_cameraBusy && waited < 2000) // up to 2s
-                            {
-                                Thread.Sleep(50);
-                                waited += 50;
-                            }
-
-                            // Still busy? Requeue and try later
-                            if (_cameraBusy)
-                            {
-                                _cmdQueue.Enqueue(path);
-                                // optional: signal wait handle here if your base queue expects it
-                                continue;
-                            }
+                            Debug.Console(1, "Skipped command while device busy: {0}", path);
+                            // do NOT send, do NOT re-enqueue
+                            continue;
                         }
 
                         var request = new HttpClientRequest();
