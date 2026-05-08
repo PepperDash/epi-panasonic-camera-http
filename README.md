@@ -163,3 +163,158 @@ devjson:1 {"deviceKey":"camera-1", "methodName":"SavePreset", "params":[9]}
 
 devjson:1 {"deviceKey":"camera-1", "methodName":"SendCustomCommand", "params":["customCommandString"]}
 ```
+<!-- START Minimum Essentials Framework Versions -->
+### Minimum Essentials Framework Versions
+
+- 1.8.5
+<!-- END Minimum Essentials Framework Versions -->
+<!-- START Config Example -->
+### Config Example
+
+```json
+{
+    "key": "GeneratedKey",
+    "uid": 1,
+    "name": "GeneratedName",
+    "type": "PanasonicCameraProps",
+    "group": "Group",
+    "properties": {
+        "control": {
+            "Method": "SampleString",
+            "TcpSshProperties": {
+                "Address": "SampleString",
+                "Port": 0
+            }
+        },
+        "communicationMonitor": "SampleValue",
+        "presets": [
+            {
+                "Name": "SampleString",
+                "Id": 0
+            }
+        ],
+        "PanSpeed": 0,
+        "ZoomSpeed": 0,
+        "TiltSpeed": 0,
+        "HomeCommand": "SampleString",
+        "PrivacyCommand": "SampleString",
+        "Pacing": 0
+    }
+}
+```
+<!-- END Config Example -->
+<!-- START Supported Types -->
+
+<!-- END Supported Types -->
+<!-- START Join Maps -->
+### Join Maps
+
+#### Digitals
+
+| Join | Type (RW) | Description |
+| --- | --- | --- |
+| 1 | R | Camera tilt up |
+| 2 | R | Camera tilt down |
+| 3 | R | Camera pan left |
+| 4 | R | Camera pan right |
+| 5 | R | Camera zoom in |
+| 6 | R | Camera zoom out |
+| 7 | R | Camera power on |
+| 8 | R | Camera power off |
+| 9 | R | Camera is online |
+| 10 | R | Camera home |
+| 11 | R | Camera preset recall |
+| 30 | R | Camera preset saved Feedback |
+| 31 | R | Camera preset save |
+| 48 | R | Camera privacy on |
+| 49 | R | Camera privacy off |
+
+#### Analogs
+
+| Join | Type (RW) | Description |
+| --- | --- | --- |
+| 1 | R | Camera pan speed |
+| 2 | R | Camera tilt speed |
+| 3 | R | Camera zoom speed |
+| 11 | R | Camera number of preset |
+
+#### Serials
+
+| Join | Type (RW) | Description |
+| --- | --- | --- |
+| 1 | R | Camera device name |
+| 2 | R | Camera IP address |
+| 11 | R | Camera preset names |
+| 50 | R | Camera device communications |
+<!-- END Join Maps -->
+<!-- START Interfaces Implemented -->
+### Interfaces Implemented
+
+- IDisposable
+- IKeyed
+- IBridgeAdvanced
+- IHasCameraPtzControl
+- IHasCameraPresets
+- IHasCameraOff
+- ICommunicationMonitor
+- IRoutingSource
+<!-- END Interfaces Implemented -->
+<!-- START Base Classes -->
+### Base Classes
+
+- StatusMonitorBase
+- JoinMapBaseAdvanced
+- CameraBase
+<!-- END Base Classes -->
+<!-- START Public Methods -->
+### Public Methods
+
+- public string PresetRecallCommand(int preset)
+- public string PresetSaveCommand(int preset)
+- public void EnqueueCmd(string cmd)
+- public void Dispose()
+- public void PositionHome()
+- public void PositionPrivacy()
+- public void PanLeft()
+- public void PanRight()
+- public void PanStop()
+- public void TiltDown()
+- public void TiltUp()
+- public void TiltStop()
+- public void CameraOn()
+- public void CameraOff()
+- public void ZoomIn()
+- public void ZoomOut()
+- public void ZoomStop()
+- public void SendCustomCommand(string cmd)
+- public void PresetSelect(int preset)
+- public void PresetStore(int preset, string description = null)
+- public void SetIpAddress(string address)
+- public void UpdatePresetName(int presetId, string name)
+- public void LinkToApi(BasicTriList trilist, uint joinStart, string joinMapKey, EiscApiAdvanced bridge)
+- public void Dispose()
+- public void EnqueueCmd(string path)
+- public void Dispose()
+- public void HandleHttpResponse(object sender, HttpResponse response)
+<!-- END Public Methods -->
+<!-- START Bool Feedbacks -->
+### Bool Feedbacks
+
+- IsOnlineFeedback
+- PresetSavedFeedback
+- CameraIsOffFeedback
+<!-- END Bool Feedbacks -->
+<!-- START Int Feedbacks -->
+### Int Feedbacks
+
+- NumberOfPresetsFeedback
+- PanSpeedFeedback
+- ZoomSpeedFeedback
+- TiltSpeedFeedback
+<!-- END Int Feedbacks -->
+<!-- START String Feedbacks -->
+### String Feedbacks
+
+- NameFeedback
+- ComsFb
+<!-- END String Feedbacks -->
