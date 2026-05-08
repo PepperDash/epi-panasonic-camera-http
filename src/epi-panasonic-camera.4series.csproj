@@ -21,6 +21,10 @@
 	</PropertyGroup>
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
 		<DefineConstants>$(DefineConstants);SERIES4</DefineConstants>
+		<NoWarn>1701;1702;CS0618</NoWarn>
+	</PropertyGroup>
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+	  <NoWarn>1701;1702;CS0618</NoWarn>
 	</PropertyGroup>
 	<ItemGroup>
 		<Compile Remove="Properties\**" />
@@ -31,6 +35,8 @@
 	  <None Remove="epi-panasonic-camera.projectinfo" />
 	</ItemGroup>
 	<ItemGroup>
-	  <PackageReference Include="PepperDashEssentials" Version="2.12.3" />
+	  <PackageReference Include="PepperDashEssentials" Version="2.12.3">
+	    <ExcludeAssets>runtime</ExcludeAssets>
+	  </PackageReference>
 	</ItemGroup>
 </Project>
