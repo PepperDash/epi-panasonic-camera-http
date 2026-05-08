@@ -1,45 +1,50 @@
 ﻿using Crestron.SimplSharp;
-using Crestron.SimplSharp.Net.Http;
 using PepperDash.Core;
 using PepperDash.Essentials.Core;
+using PepperDash.Core.Logging;
 
 namespace PanasonicCameraEpi
 {
     public class PanasonicHttpCameraMonitor : StatusMonitorBase
     {
         private readonly CTimer _timer;
-        private readonly GenericHttpClient _client;
+        private readonly HttpCommandQueue _httpQueue;
         private readonly long _pollInterval;
         private readonly string _pollString;
 
-        public PanasonicHttpCameraMonitor(IKeyed parent, GenericHttpClient client,
+        public PanasonicHttpCameraMonitor(IKeyed parent, string hostname,
             CommunicationMonitorConfig props)
             : base (parent, props.TimeToWarning, props.TimeToError)
         {
-            _client = client;
+            _httpQueue = new HttpCommandQueue(hostname, parent.Key + "-monitor");
+            _httpQueue.ResponseReceived += HandleHttpResponse;
             _pollInterval = props.PollInterval;
             _pollString = props.PollString;
 
             _timer = new CTimer(TimerCallback, props.PollString, Timeout.Infinite, _pollInterval);
-            _client.ResponseRecived += HandleResponseReceived;
 
             CrestronEnvironment.ProgramStatusEventHandler += eventType =>
                 {
                     if (eventType != eProgramStatusEventType.Stopping)
                         return;
 
-                    Debug.Console(1, this, "Program stopping, disposing of error timers...");
+                    this.LogInformation("Program stopping, disposing of error timers...");
                     Stop();
                     _timer.Dispose();
+                    _httpQueue?.Dispose();
                 };
         }
 
-        private void HandleResponseReceived(object sender, GenericHttpClientEventArgs e)
+        private void HandleHttpResponse(object sender, HttpResponse response)
         {
-            if (e.Error != HTTP_CALLBACK_ERROR.COMPLETED)
-                return;
-
-            SetOk();
+            if (response != null && response.StatusCode == 200)
+            {
+                SetOk();
+            }
+            else
+            {
+                this.LogWarning("HTTP request failed. Status Code: {0}", response?.StatusCode ?? 0);
+            }
         }
 
         public override void Start()
@@ -57,12 +62,14 @@ namespace PanasonicCameraEpi
 
         private void TimerCallback(object obj)
         {
-            if (string.IsNullOrEmpty(_client.Client.HostName))
+            try
             {
-                Debug.Console(0, "Panasonic camera hostname not valid");
-                return;
+                _httpQueue.EnqueueCmd(_pollString);
             }
-            _client.SendText(_pollString);
+            catch (System.Exception ex)
+            {
+                this.LogError("Error sending HTTP request: {0}", ex.Message);
+            }
         }
 
         private void SetOk()

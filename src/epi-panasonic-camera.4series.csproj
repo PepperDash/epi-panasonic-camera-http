@@ -1,0 +1,41 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<ProjectType>ProgramLibrary</ProjectType>
+	</PropertyGroup>
+	<PropertyGroup>
+		<TargetFramework>net472</TargetFramework>
+		<RootNamespace>PanasonicCameraEpi</RootNamespace>
+		<Deterministic>false</Deterministic>
+		<AssemblyTitle>EPI.Panasonic.Camera</AssemblyTitle>
+		<Company>PepperDash Technologies</Company>
+		<Description>This software is a plugin designed to work as a part of PepperDash Essentials for Crestron control processors. This plugin allows for control of Panasonic Cameras.</Description>
+		<Copyright>Copyright 2024</Copyright>
+		<Version>1.0.0-local</Version>
+		<GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+		<InformationalVersion>$(Version)</InformationalVersion>
+		<OutputPath>4Series\bin\$(Configuration)\</OutputPath>
+		<Authors>PepperDash Technologies</Authors>
+		<PackageId>Pepperdash.Essentials.Plugins.Camera.Panasonic</PackageId>
+		<PackageProjectUrl>https://github.com/PepperDash/epi-panasonic-camera-http</PackageProjectUrl>
+		<PackageTags>crestron 4series panasonic camera</PackageTags>
+	</PropertyGroup>
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+	  <NoWarn>1701;1702;CS0618</NoWarn>
+	</PropertyGroup>
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+	  <NoWarn>1701;1702;CS0618</NoWarn>
+	</PropertyGroup>
+	<ItemGroup>
+		<Compile Remove="Properties\**" />
+		<EmbeddedResource Remove="Properties\**" />
+		<None Remove="Properties\**" />
+	</ItemGroup>
+	<ItemGroup>
+	  <None Remove="epi-panasonic-camera.projectinfo" />
+	</ItemGroup>
+	<ItemGroup>
+	  <PackageReference Include="PepperDashEssentials" Version="2.12.3">
+	    <ExcludeAssets>runtime</ExcludeAssets>
+	  </PackageReference>
+	</ItemGroup>
+</Project>

@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.2.32630.192
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "epi-panasonic-camera.4series", "src\epi-panasonic-camera.4series.csproj", "{D0C1EDE6-DD95-4B49-86C0-ADC4A77CF3AB}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{D0C1EDE6-DD95-4B49-86C0-ADC4A77CF3AB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D0C1EDE6-DD95-4B49-86C0-ADC4A77CF3AB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D0C1EDE6-DD95-4B49-86C0-ADC4A77CF3AB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D0C1EDE6-DD95-4B49-86C0-ADC4A77CF3AB}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {669966C2-74FC-4EF1-9A37-EE2746879D65}
+	EndGlobalSection
+EndGlobal
