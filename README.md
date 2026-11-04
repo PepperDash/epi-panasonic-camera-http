@@ -243,3 +243,242 @@ devjson:1 {"deviceKey":"camera-1", "methodName":"PresetStore", "params":[9, ""]}
 
 devjson:1 {"deviceKey":"camera-1", "methodName":"SendCustomCommand", "params":["customCommandString"]}
 ```
+<!-- START Minimum Essentials Framework Versions -->
+### Minimum Essentials Framework Versions
+
+- 3.0.0
+<!-- END Minimum Essentials Framework Versions -->
+<!-- START Config Example -->
+### Config Example
+
+```json
+{
+    "key": "GeneratedKey",
+    "uid": 1,
+    "name": "GeneratedName",
+    "type": "PanasonicCameraProps",
+    "group": "Group",
+    "properties": {
+        "control": {
+            "Method": "SampleString",
+            "TcpSshProperties": {
+                "Address": "SampleString",
+                "Port": 0
+            }
+        },
+        "communicationMonitor": "SampleValue",
+        "presets": [
+            {
+                "Name": "SampleString",
+                "Id": 0
+            }
+        ],
+        "PanSpeed": 0,
+        "ZoomSpeed": 0,
+        "TiltSpeed": 0,
+        "FocusSpeed": 0,
+        "HomeCommand": "SampleString",
+        "PrivacyCommand": "SampleString",
+        "Pacing": 0
+    }
+}
+```
+<!-- END Config Example -->
+<!-- START Supported Types -->
+
+<!-- END Supported Types -->
+<!-- START Join Maps -->
+### Join Maps
+
+#### Digitals
+
+| Join | Type (RW) | Description |
+| --- | --- | --- |
+| 1 | R | Camera tilt up |
+| 2 | R | Camera tilt down |
+| 3 | R | Camera pan left |
+| 4 | R | Camera pan right |
+| 5 | R | Camera zoom in |
+| 6 | R | Camera zoom out |
+| 7 | R | Camera power on |
+| 8 | R | Camera power off |
+| 9 | R | Camera is online |
+| 10 | R | Camera home |
+| 11 | R | Camera preset recall |
+| 30 | R | Camera preset saved Feedback |
+| 31 | R | Camera preset save |
+| 48 | R | Camera privacy on |
+| 49 | R | Camera privacy off |
+| 50 | R | Camera focus near |
+| 51 | R | Camera focus far |
+| 52 | R | Camera one-touch auto focus |
+| 53 | R | Camera auto focus on |
+| 54 | R | Camera auto focus off |
+
+#### Analogs
+
+| Join | Type (RW) | Description |
+| --- | --- | --- |
+| 1 | R | Camera pan speed |
+| 2 | R | Camera tilt speed |
+| 3 | R | Camera zoom speed |
+| 4 | R | Camera focus speed |
+| 11 | R | Camera number of preset |
+
+#### Serials
+
+| Join | Type (RW) | Description |
+| --- | --- | --- |
+| 1 | R | Camera device name |
+| 2 | R | Camera IP address |
+| 11 | R | Camera preset names |
+| 50 | R | Camera device communications |
+<!-- END Join Maps -->
+<!-- START Interfaces Implemented -->
+### Interfaces Implemented
+
+- IKeyed
+- IDisposable
+- IBridgeAdvanced
+- IHasCameraPtzControl
+- IHasCameraFocusControl
+- IHasAutoFocusMode
+- IHasCameraPresets
+- IHasCameraOff
+- IHasCameraPrivacy
+- IHasPowerControlWithFeedback
+- ICommunicationMonitor
+- IRoutingSource
+- IDeviceInfoProvider
+<!-- END Interfaces Implemented -->
+<!-- START Base Classes -->
+### Base Classes
+
+- CameraBase
+- JoinMapBaseAdvanced
+- EventArgs
+- StatusMonitorBase
+- CameraControlMessenger<IHasCameraControls>
+- PepperDash.Essentials.AppServer.Messengers.CameraStateMessage
+<!-- END Base Classes -->
+<!-- START Public Methods -->
+### Public Methods
+
+- public void EnqueueCmd(string path)
+- public void Dispose()
+- public void PositionHome()
+- public void PanLeft()
+- public void PanRight()
+- public void PanStop()
+- public void TiltDown()
+- public void TiltUp()
+- public void TiltStop()
+- public void CameraOff()
+- public void PowerOn()
+- public void PowerOff()
+- public void PowerToggle()
+- public void PrivacyOn()
+- public void PrivacyOff()
+- public void ZoomIn()
+- public void ZoomOut()
+- public void ZoomStop()
+- public void FocusNear()
+- public void FocusFar()
+- public void FocusStop()
+- public void TriggerAutoFocus()
+- public void SetFocusModeAuto()
+- public void SetFocusModeManual()
+- public void ToggleFocusMode()
+- public void SendCustomCommand(string cmd)
+- public void PresetSelect(int preset)
+- public void PresetStore(int preset, string description)
+- public void SetIpAddress(string address)
+- public void UpdatePresetName(int presetId, string name)
+- public void LinkToApi(BasicTriList trilist, uint joinStart, string joinMapKey, EiscApiAdvanced bridge)
+- public void UpdateDeviceInfo()
+- public void Dispose()
+- public void HandleHttpResponse(object sender, HttpResponse response)
+- public string PresetRecallCommand(int preset)
+- public string PresetSaveCommand(int preset)
+- public void Camera_Implements_The_Interface(Type contract)
+- public void Camera_Is_A_CameraBase_So_Capabilities_Are_Reported()
+- public void Default_Messenger_Interfaces_Exclude_Only_IHasCameraControls()
+- public void Core_Messengers_Still_Created_For(Type contract)
+- public void Replacement_Messenger_Extends_Core_Camera_Messenger()
+- public void Replacement_Messenger_Keeps_Core_Camera_Actions()
+- public void Replacement_Messenger_Adds_Privacy_And_Focus_Actions()
+- public void Status_Message_Type_Name_Matches_Core()
+- public void Status_Message_Extends_Core_Camera_State()
+- public void Status_Message_Carries_Core_And_Plugin_Fields()
+- public void Auto_Focus_State_Is_Omitted_When_Unknown()
+- public void Fixed_Commands(string property, string expected)
+- public void Configured_Home_And_Privacy_Commands_Override_The_Defaults()
+- public void Pan_Tilt_Zoom_Commands_Are_Centered_On_50()
+- public void Preset_Recall_Is_Zero_Based_And_Padded(int preset, string expected)
+- public void Preset_Save_Is_Zero_Based_And_Padded(int preset, string expected)
+- public void Focus_Commands_Default_Speed()
+- public void Focus_Speed_Sets_Near_And_Far(int speed, string near, string far)
+- public void Slowest_Speeds_Are_Zero_Padded_To_Two_Digits()
+- public void Invalid_Focus_Speed_Falls_Back_To_25(int speed)
+- public void Auto_Focus_Commands()
+- public void Assembly_Loads_Successfully()
+- public void Assembly_Name_Matches_Expected()
+- public void Assembly_Name_Matches_Repo_Derived_Package_Name()
+- public void Factory_Count_Matches_Expected()
+- public void Factory_Exists_ByName(string factoryName)
+- public void All_Factories_Have_Parameterless_Constructor()
+- public void Factory_Builds_The_Camera_Device_Type()
+- public void Config_Class_Exists()
+- public void Config_Has_Parameterless_Constructor()
+- public void Config_Exposes_Property(string name)
+- public void Config_Numeric_Property_Is_Int(string name)
+- public void Config_Property_Has_JsonPropertyAttribute(string jsonName)
+- public void Power_Reply_P1_Raises_PoweredOn()
+- public void Power_Reply_P0_Raises_PoweredOff()
+- public void Auto_Focus_Reply_Raises_AutoFocusChanged(string content, bool expected)
+- public void Unrelated_Replies_Raise_Nothing(string content)
+- public void Device_Info_Reply_Is_Parsed()
+- public void Device_Info_Reply_Is_Not_Treated_As_A_Power_Reply()
+- public void Latest_Reply_Is_Exposed_As_Coms_Feedback()
+- public void Factory_Sets_MinimumEssentialsFrameworkVersion()
+- public void MinimumEssentialsFrameworkVersion_Is_Plain_Numeric_And_Matches_Pinned_Essentials()
+- public void Factory_Sets_TypeNames()
+- public void Factory_Source_Contains_TypeName(string typeName)
+- public void No_Duplicate_TypeNames()
+- public void Full_Config_Deserializes()
+- public void Missing_Optional_Values_Default_To_Zero_So_The_Plugin_Defaults_Apply()
+- public void Example_Config_Deserializes()
+- public void Every_Example_Config_Key_Maps_To_A_Config_Property()
+- public void Example_Config_Poll_String_Is_A_Real_Camera_Command()
+- public void Dispose()
+- public void Default_Pacing_Is_The_Spec_Recommended_130ms()
+- public void Enqueue_After_Dispose_Is_Ignored()
+- public void Dispose_Twice_Is_Safe()
+- public void Empty_Path_Is_Rejected()
+- public void Empty_Hostname_Is_Rejected(string? hostname)
+- public void Key_Uses_The_Parent_Device_Key()
+<!-- END Public Methods -->
+<!-- START Bool Feedbacks -->
+### Bool Feedbacks
+
+- IsOnlineFeedback
+- AutoFocusIsOnFeedback
+- PresetSavedFeedback
+- CameraIsOffFeedback
+- PowerIsOnFeedback
+<!-- END Bool Feedbacks -->
+<!-- START Int Feedbacks -->
+### Int Feedbacks
+
+- NumberOfPresetsFeedback
+- PanSpeedFeedback
+- ZoomSpeedFeedback
+- TiltSpeedFeedback
+- FocusSpeedFeedback
+<!-- END Int Feedbacks -->
+<!-- START String Feedbacks -->
+### String Feedbacks
+
+- NameFeedback
+- ComsFb
+<!-- END String Feedbacks -->
