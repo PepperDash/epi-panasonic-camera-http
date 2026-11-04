@@ -140,18 +140,6 @@ The join map below documents the commands implemented in this plugin.
 | Device communication | 50  | Device communication fb |
 
 
-## Mobile Control
-
-When an Essentials Mobile Control controller is present, the camera is exposed at `/device/{deviceKey}` through the standard core messengers (communication monitor, camera control with pan/tilt/zoom and presets, power with feedback) plus a plugin-provided privacy messenger:
-
-| Action | Description |
-| ------ | ----------- |
-| `/privacyOn` | Sends the camera to its privacy position (`privacyCommand`, default `APC00000000`) |
-| `/privacyOff` | Returns the camera by recalling preset 1 |
-| `/fullStatus`, `/privacyStatus` | Reports `hasCameraPrivacy: true` |
-
-The camera cannot report where it is pointed, so there is no privacy-state feedback.
-
 ## DEVJSON Commands
 
 When using DEVJSON commands update the program index `devjson:{programIndex}` and `deviceKey` values to match the testing environment.
