@@ -10,7 +10,7 @@ namespace PanasonicCameraEpi
 
 		public PanasonicCameraFactory()
         {
-            MinimumEssentialsFrameworkVersion = "1.8.5";
+            MinimumEssentialsFrameworkVersion = "3.0.0";
 
 			TypeNames = new List<string> { "panasonicHttpCamera"};
         }

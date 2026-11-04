@@ -3,7 +3,7 @@
 		<ProjectType>ProgramLibrary</ProjectType>
 	</PropertyGroup>
 	<PropertyGroup>
-		<TargetFramework>net472</TargetFramework>
+		<TargetFramework>net8.0</TargetFramework>
 		<RootNamespace>PanasonicCameraEpi</RootNamespace>
 		<Deterministic>false</Deterministic>
 		<AssemblyTitle>EPI.Panasonic.Camera</AssemblyTitle>
@@ -15,7 +15,8 @@
 		<InformationalVersion>$(Version)</InformationalVersion>
 		<OutputPath>4Series\bin\$(Configuration)\</OutputPath>
 		<Authors>PepperDash Technologies</Authors>
-		<PackageId>Pepperdash.Essentials.Plugins.Camera.Panasonic</PackageId>
+		<PackageId>PepperDash.Essentials.Plugins.Panasonic.Camera.Http</PackageId>
+		<AssemblyName>PepperDash.Essentials.Plugins.Panasonic.Camera.Http</AssemblyName>
 		<PackageProjectUrl>https://github.com/PepperDash/epi-panasonic-camera-http</PackageProjectUrl>
 		<PackageTags>crestron 4series panasonic camera</PackageTags>
 	</PropertyGroup>
@@ -34,7 +35,7 @@
 	  <None Remove="epi-panasonic-camera.projectinfo" />
 	</ItemGroup>
 	<ItemGroup>
-	  <PackageReference Include="PepperDashEssentials" Version="2.12.3">
+	  <PackageReference Include="PepperDashEssentials" Version="3.0.0-rc.20">
 	    <ExcludeAssets>runtime</ExcludeAssets>
 	  </PackageReference>
 	</ItemGroup>

@@ -116,7 +116,7 @@ namespace PanasonicCameraEpi
                 PanSpeed = cameraConfig.PanSpeed;
             });
         }
-        public override bool CustomActivate()
+        protected override bool CustomActivate()
         {
             SetupFeedbacks();
             _responseHandler.CameraPoweredOn += (sender, args) =>
