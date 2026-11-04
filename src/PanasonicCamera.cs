@@ -10,7 +10,7 @@ using PepperDash.Essentials.Core.Devices;
 using PepperDash.Essentials.Devices.Common.Cameras;
 using PepperDash.Core;
 using Crestron.SimplSharp;
-using Serilog.Events;
+using PepperDash.Core.Logging;
 
 
 namespace PanasonicCameraEpi
@@ -139,7 +139,7 @@ namespace PanasonicCameraEpi
 
         private void HandleMonitorStatusChange(object sender, MonitorStatusChangeEventArgs e)
         {
-            Debug.LogMessage(LogEventLevel.Information, this, "STATUS: '{0}'", e.Message);
+            this.LogInformation("Status: {status}", e.Message);
         }
 
         private void SetupFeedbacks()
@@ -327,17 +327,17 @@ namespace PanasonicCameraEpi
 			{
 			    if (!(address.Length > 2 & Config.Properties["control"]["tcpSshProperties"]["address"].ToString() != address))
 			        return;
-			    Debug.LogMessage(LogEventLevel.Information, this, "Changing IPAddress: {0}", address);
+			    this.LogInformation("Changing IP address: {address}", address);
 
 			    Config.Properties["control"]["tcpSshProperties"]["address"] = address;
-			    Debug.LogMessage(LogEventLevel.Debug, this, "{0}", Config.Properties.ToString());
+			    this.LogDebug("Properties: {properties}", Config.Properties.ToString());
 			    SetConfig(Config);
 			    // Update hostname in config - the monitor will use the new address
 			    // Note: With HttpClient approach, the monitor handles the hostname directly
 			}
 			catch (Exception e)
 			{
-				Debug.LogMessage(LogEventLevel.Error, this, "Error SetIpAddress: '{0}'", e);
+				this.LogError(e, "Error setting IP address: {message}", e.Message);
 			}
 		}
 
@@ -391,8 +391,8 @@ namespace PanasonicCameraEpi
                 joinMap.SetCustomJoinData(customJoins);
             }
 
-            Debug.LogMessage(LogEventLevel.Information, "PanasonicCamera", "Linking to Trilist '{0}'", trilist.ID.ToString("X"));
-            Debug.LogMessage(LogEventLevel.Information, "PanasonicCamera", "Linking to Bridge Type {0}", GetType().Name);
+            this.LogInformation("Linking to Trilist {trilistId}", trilist.ID.ToString("X"));
+            this.LogInformation("Linking to Bridge Type {bridgeType}", GetType().Name);
 
             // links to bridge
             trilist.SetString(joinMap.DeviceName.JoinNumber, Name);
@@ -463,7 +463,7 @@ namespace PanasonicCameraEpi
 
             foreach (var preset in PresetNamesFeedbacks)
             {
-                Debug.LogMessage(LogEventLevel.Debug, "PanasonicCamera", "foreach: preset.Key: {0} preset.Value: {1}", preset.Key, preset.Value);
+                this.LogDebug("Preset {presetKey}: {presetValue}", preset.Key, preset.Value);
                 var presetNumber = preset.Key;
                 var nameJoin = joinMap.PresetNames.JoinNumber + presetNumber - 1;
                 preset.Value.LinkInputSig(trilist.StringInput[nameJoin]);

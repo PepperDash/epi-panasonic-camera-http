@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Text;
 using PepperDash.Core;
-using Serilog.Events;
+using Serilog;
 
 namespace PanasonicCameraEpi
 {
@@ -96,7 +96,7 @@ namespace PanasonicCameraEpi
             var command = Convert.ToString(preset - 1);
             var formattedCommand = command.PadLeft(2, '0');
 			var cmd = BuildCmd(String.Format("R{0}", formattedCommand));			
-			Debug.LogMessage(LogEventLevel.Debug, "PanasonicCmdBuilder", "PresetRecallCommand({0}) Cmd: {1}", preset, cmd);
+			Log.Debug("PanasonicCmdBuilder: PresetRecallCommand({preset}) Cmd: {cmd}", preset, cmd);
 			return cmd;
         }
 
@@ -105,7 +105,7 @@ namespace PanasonicCameraEpi
 			var command = Convert.ToString(preset - 1);
 			var formattedCommand = command.PadLeft(2, '0');
 			var cmd = BuildCmd(String.Format("M{0}", formattedCommand));
-			Debug.LogMessage(LogEventLevel.Debug, "PanasonicCmdBuilder", "PresetSaveCommand({0}) Cmd: {1}", preset, cmd);
+			Log.Debug("PanasonicCmdBuilder: PresetSaveCommand({preset}) Cmd: {cmd}", preset, cmd);
 			return cmd;
         }
 

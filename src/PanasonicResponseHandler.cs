@@ -1,7 +1,7 @@
 ﻿using System;
 using PepperDash.Essentials.Core;
 using PepperDash.Core;
-using Serilog.Events;
+using Serilog;
 
 namespace PanasonicCameraEpi
 {
@@ -20,7 +20,7 @@ namespace PanasonicCameraEpi
 
 		public void HandleHttpResponse(object sender, HttpResponse response)
 		{
-			Debug.LogMessage(LogEventLevel.Information, "Received HTTP Response: Code={0}, Content={1}", response.StatusCode, response.Content);
+			Log.Debug("PanasonicResponseHandler: received HTTP response Code={code}, Content={content}", response.StatusCode, response.Content);
 			_comsRx = response.Content;
 			ProcessComs(_comsRx);
 			ComsFb.FireUpdate();
