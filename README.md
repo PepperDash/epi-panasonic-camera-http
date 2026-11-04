@@ -54,11 +54,14 @@ Controls the following cameras:
         "panSpeed": 25,
         "tiltSpeed": 25,
         "zoomSpeed": 25,
+        "pacing": 130,
         "homeCommand": "",
         "privacyCommand": ""
     }
 }
 ```
+
+`pacing` (optional, milliseconds, default `130`) is the minimum gap between the start of consecutive commands sent to the camera. 130 ms is the value recommended in the Panasonic interface specification.
 
 ## Essentials Bridging
 

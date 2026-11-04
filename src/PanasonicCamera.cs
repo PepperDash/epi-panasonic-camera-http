@@ -85,7 +85,8 @@ namespace PepperDash.Essentials.Plugins
                 throw new NotImplementedException("Hostname is empty");
 			}
             _monitor = new PanasonicHttpCameraMonitor(this, hostname, cameraConfig.CommunicationMonitor);
-            _queue = new HttpCommandQueue(hostname, this.Key);
+            var pacing = cameraConfig.Pacing > 0 ? cameraConfig.Pacing : HttpCommandQueue.DefaultPacingMs;
+            _queue = new HttpCommandQueue(hostname, this.Key, pacing);
             _queue.ResponseReceived += _responseHandler.HandleHttpResponse;
 
             _cmd = new PanasonicCmdBuilder(12, 25, 12, cameraConfig.HomeCommand, cameraConfig.PrivacyCommand);

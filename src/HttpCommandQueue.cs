@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Channels;
@@ -17,12 +18,18 @@ namespace PepperDash.Essentials.Plugins
     /// <summary>
     /// Sends HTTP GET commands to the camera one at a time, in the order they were enqueued,
     /// using System.Net.Http. EnqueueCmd returns immediately; responses are raised on ResponseReceived.
+    /// A minimum gap (pacing) is kept between the start of consecutive commands; Panasonic's interface
+    /// specification recommends 130 ms.
     /// </summary>
     public class HttpCommandQueue : IKeyed, IDisposable
     {
         public event EventHandler<HttpResponse> ResponseReceived;
 
+        /// <summary>Command gap recommended by the Panasonic interface specification.</summary>
+        public const int DefaultPacingMs = 130;
+
         private readonly string hostname;
+        private readonly int _pacingMs;
         private readonly HttpClient _client;
         private readonly Channel<string> _channel = Channel.CreateUnbounded<string>(
             new UnboundedChannelOptions { SingleReader = true });
@@ -37,12 +44,13 @@ namespace PepperDash.Essentials.Plugins
         {
         }
 
-        public HttpCommandQueue(string hostname, string parentDeviceKey)
+        public HttpCommandQueue(string hostname, string parentDeviceKey, int pacingMs = DefaultPacingMs)
         {
             if (string.IsNullOrEmpty(hostname))
                 throw new ArgumentException("Hostname cannot be null or empty", nameof(hostname));
 
             this.hostname = hostname;
+            _pacingMs = Math.Max(0, pacingMs);
             Key = string.IsNullOrEmpty(parentDeviceKey) ? $"http-{hostname}" : $"http-{parentDeviceKey}";
 
             _client = new HttpClient(new SocketsHttpHandler
@@ -75,7 +83,12 @@ namespace PepperDash.Essentials.Plugins
             {
                 await foreach (var path in _channel.Reader.ReadAllAsync(token).ConfigureAwait(false))
                 {
+                    var sw = Stopwatch.StartNew();
                     await SendAsync(path, token).ConfigureAwait(false);
+
+                    var remaining = _pacingMs - sw.ElapsedMilliseconds;
+                    if (remaining > 0)
+                        await Task.Delay(TimeSpan.FromMilliseconds(remaining), token).ConfigureAwait(false);
                 }
             }
             catch (OperationCanceledException)

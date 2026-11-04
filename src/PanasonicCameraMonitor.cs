@@ -17,7 +17,7 @@ namespace PepperDash.Essentials.Plugins
             CommunicationMonitorConfig props)
             : base (parent, props.TimeToWarning, props.TimeToError)
         {
-            _httpQueue = new HttpCommandQueue(hostname, parent.Key + "-monitor");
+            _httpQueue = new HttpCommandQueue(hostname, parent.Key + "-monitor", 0);
             _httpQueue.ResponseReceived += HandleHttpResponse;
             _pollInterval = props.PollInterval;
             _pollString = props.PollString;
