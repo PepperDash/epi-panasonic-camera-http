@@ -4,7 +4,9 @@ using System.Linq;
 using System.Threading;
 using Crestron.SimplSharpPro.DeviceSupport;
 using Newtonsoft.Json.Linq;
+using PepperDash.Essentials.AppServer.Messengers;
 using PepperDash.Essentials.Core.Bridges;
+using PepperDash.Essentials.Core.DeviceTypeInterfaces;
 using PepperDash.Essentials.Core.Config;
 using PepperDash.Essentials.Core;
 using PepperDash.Essentials.Core.Devices;
@@ -148,6 +150,22 @@ namespace PepperDash.Essentials.Plugins
             // to (PowerIsOnFeedback, ...) exist.
             return base.CustomActivate();
         }        
+
+        /// <summary>
+        /// Registers the default core messengers (power, comm monitor, camera control/presets) and the
+        /// plugin-local privacy messenger, which core has no registry entry for.
+        /// </summary>
+        protected override void CreateMobileControlMessengers()
+        {
+            base.CreateMobileControlMessengers();
+
+            var controller = DeviceManager.AllDevices.OfType<IMobileControl>().FirstOrDefault();
+            if (controller == null)
+                return;
+
+            var messenger = new IHasCameraPrivacyMessenger($"{Key}-cameraPrivacy-{controller.Key}", $"/device/{Key}", this);
+            controller.AddDeviceMessenger(messenger);
+        }
 
         private void HandleMonitorStatusChange(object sender, MonitorStatusChangeEventArgs e)
         {

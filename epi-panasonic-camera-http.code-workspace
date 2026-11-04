@@ -1,0 +1,25 @@
+{
+	"folders": [
+		{
+			"name": "epi-panasonic-camera-http",
+			"path": "."
+		},
+		{
+			"name": "essentials",
+			"path": "../Essentials"
+		},
+		{
+			"name": "mobile-control-react-app-core",
+			"path": "../mobile-control-react-app-core"
+		},
+		{
+			"name": "mobile-control-touchpanel-wrapper-app",
+			"path": "../mobile-control-touchpanel-wrapper-app"
+		},
+		{
+			"name": "mobile-control-cisco-navigator-momentum-ui",
+			"path": "../mobile-control-cisco-navigator-momentum-ui"
+		}
+	],
+	"settings": {}
+}
