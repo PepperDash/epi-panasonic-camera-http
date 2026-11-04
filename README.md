@@ -140,8 +140,8 @@ The join map below documents the commands implemented in this plugin.
 When using DEVJSON commands update the program index `devjson:{programIndex}` and `deviceKey` values to match the testing environment.
 
 ```json
-devjson:1 {"deviceKey":"camera-1", "methodName":"CameraOn", "params":[]}
-devjson:1 {"deviceKey":"camera-1", "methodName":"CameraOff", "params":[]}
+devjson:1 {"deviceKey":"camera-1", "methodName":"PowerOn", "params":[]}
+devjson:1 {"deviceKey":"camera-1", "methodName":"PowerOff", "params":[]}
 
 devjson:1 {"deviceKey":"camera-1", "methodName":"PanLeft", "params":[]}
 devjson:1 {"deviceKey":"camera-1", "methodName":"PanRight", "params":[]}
@@ -156,10 +156,11 @@ devjson:1 {"deviceKey":"camera-1", "methodName":"ZoomOut", "params":[]}
 devjson:1 {"deviceKey":"camera-1", "methodName":"ZoomStop", "params":[]}
 
 devjson:1 {"deviceKey":"camera-1", "methodName":"PositionHome", "params":[]}
-devjson:1 {"deviceKey":"camera-1", "methodName":"PositionPrivacy", "params":[]}
+devjson:1 {"deviceKey":"camera-1", "methodName":"PrivacyOn", "params":[]}
+devjson:1 {"deviceKey":"camera-1", "methodName":"PrivacyOff", "params":[]}
 
-devjson:1 {"deviceKey":"camera-1", "methodName":"RecallPreset", "params":[4]}
-devjson:1 {"deviceKey":"camera-1", "methodName":"SavePreset", "params":[9]}
+devjson:1 {"deviceKey":"camera-1", "methodName":"PresetSelect", "params":[4]}
+devjson:1 {"deviceKey":"camera-1", "methodName":"PresetStore", "params":[9, ""]}
 
 devjson:1 {"deviceKey":"camera-1", "methodName":"SendCustomCommand", "params":["customCommandString"]}
 ```

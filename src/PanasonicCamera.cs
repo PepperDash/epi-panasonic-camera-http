@@ -16,7 +16,7 @@ using PepperDash.Core.Logging;
 
 namespace PanasonicCameraEpi
 {
-    public class PanasonicCamera : CameraBase, IBridgeAdvanced, IHasCameraPtzControl, IHasCameraPresets, IHasCameraOff, ICommunicationMonitor, IRoutingSource, IDisposable
+    public class PanasonicCamera : CameraBase, IBridgeAdvanced, IHasCameraPtzControl, IHasCameraPresets, IHasCameraOff, IHasCameraPrivacy, IHasPowerControlWithFeedback, ICommunicationMonitor, IRoutingSource, IDisposable
     {
         private readonly StatusMonitorBase _monitor;
         private readonly PanasonicCmdBuilder _cmd;
@@ -24,7 +24,9 @@ namespace PanasonicCameraEpi
         private readonly HttpCommandQueue _queue;
         private readonly Dictionary<uint, PanasonicCameraPreset> _presets;
 
-        public List<CameraPreset> Presets { get; }
+        // Replaced (never mutated) on change so readers such as the mobile-control messenger always see a consistent list
+        private volatile List<CameraPreset> _presetList = new List<CameraPreset>();
+        public List<CameraPreset> Presets { get { return _presetList; } }
 
         public event EventHandler<EventArgs> PresetsListHasChanged;
         private const int PresetSavedDurationMs = 5000;
@@ -59,7 +61,8 @@ namespace PanasonicCameraEpi
         public PanasonicCamera(DeviceConfig config)
             : base(config)
         {
-            OutputPorts = new RoutingPortCollection<RoutingOutputPort>();
+            // OutputPorts is created by CameraBase
+            Capabilities = eCameraCapabilities.Pan | eCameraCapabilities.Tilt | eCameraCapabilities.Zoom;
             _presetSavedTimer = new Timer(_ => PresetSavedBool = false, null, System.Threading.Timeout.Infinite, System.Threading.Timeout.Infinite);
 
 			var cameraConfig = PanasonicCameraPropsConfig.FromDeviceConfig(config);
@@ -126,12 +129,14 @@ namespace PanasonicCameraEpi
                 {
                     IsPoweredOn = true;
                     CameraIsOffFeedback.FireUpdate();
+                    PowerIsOnFeedback.FireUpdate();
                 };
 
             _responseHandler.CameraPoweredOff += (sender, args) =>
                 {
                     IsPoweredOn = false;
                     CameraIsOffFeedback.FireUpdate();
+                    PowerIsOnFeedback.FireUpdate();
                 };
 
             _monitor.StatusChange += HandleMonitorStatusChange;
@@ -178,6 +183,19 @@ namespace PanasonicCameraEpi
 
             CameraIsOffFeedback = new BoolFeedback("CameraIsOffFeedback", () => !IsPoweredOn);
             CameraIsOffFeedback.FireUpdate(); 
+
+            PowerIsOnFeedback = new BoolFeedback("PowerIsOnFeedback", () => IsPoweredOn);
+            PowerIsOnFeedback.FireUpdate();
+
+            RebuildPresetList();
+        }
+
+        private void RebuildPresetList()
+        {
+            _presetList = _presets.Values
+                .OrderBy(p => p.Id)
+                .Select(p => new CameraPreset(p.Id, p.Name ?? string.Empty, !string.IsNullOrEmpty(p.Name), true))
+                .ToList();
         }
 
         public int PanSpeed
@@ -215,11 +233,6 @@ namespace PanasonicCameraEpi
         public void PositionHome()
         {
             _queue.EnqueueCmd(_cmd.HomeCommand);
-        }
-
-        public void PositionPrivacy()
-        {
-            _queue.EnqueueCmd(_cmd.PrivacyCommand);
         }
 
         #endregion
@@ -265,15 +278,48 @@ namespace PanasonicCameraEpi
         #region IHasCameraOff Members
 
         public BoolFeedback CameraIsOffFeedback { get; private set; }
-
-        public void CameraOn()
-        {
-            _queue.EnqueueCmd(_cmd.PowerOnCommand);
-        }
+        public BoolFeedback PowerIsOnFeedback { get; private set; }
 
         public void CameraOff()
         {
             _queue.EnqueueCmd(_cmd.PowerOffCommand);
+        }
+
+        #endregion
+
+        #region IHasPowerControlWithFeedback Members
+
+        public void PowerOn()
+        {
+            _queue.EnqueueCmd(_cmd.PowerOnCommand);
+        }
+
+        public void PowerOff()
+        {
+            CameraOff();
+        }
+
+        public void PowerToggle()
+        {
+            if (IsPoweredOn)
+                PowerOff();
+            else
+                PowerOn();
+        }
+
+        #endregion
+
+        #region IHasCameraPrivacy Members
+
+        public void PrivacyOn()
+        {
+            _queue.EnqueueCmd(_cmd.PrivacyCommand);
+        }
+
+        public void PrivacyOff()
+        {
+            // preset 1 is the "return" position for privacy
+            PresetSelect(1);
         }
 
         #endregion
@@ -310,13 +356,16 @@ namespace PanasonicCameraEpi
             _queue.EnqueueCmd(_cmd.PresetRecallCommand(preset));	        
         }
 
-        public void PresetStore(int preset, string description = null)
+        public void PresetStore(int preset, string description)
         {
             _queue.EnqueueCmd(_cmd.PresetSaveCommand(preset));
             PresetSavedBool = true;
             
             // one-shot: restarts the 5 second window each time a preset is stored
             _presetSavedTimer.Change(PresetSavedDurationMs, System.Threading.Timeout.Infinite);
+
+            if (!string.IsNullOrEmpty(description))
+                UpdatePresetName(preset, description);
         }
 
 		/// <summary>
@@ -359,6 +408,9 @@ namespace PanasonicCameraEpi
                 feedback.Value.FireUpdate();
             
             NumberOfPresetsFeedback.FireUpdate();
+
+            RebuildPresetList();
+            PresetsListHasChanged?.Invoke(this, EventArgs.Empty);
 
             var props = PanasonicCameraPropsConfig.FromDeviceConfig(Config);
             props.Presets = _presets.Values.ToList();
@@ -451,10 +503,10 @@ namespace PanasonicCameraEpi
                 else ZoomStop();
             });
 
-            trilist.SetSigTrueAction(joinMap.PowerOn.JoinNumber, CameraOn);
-            trilist.SetSigTrueAction(joinMap.PowerOff.JoinNumber, CameraOff);
-            trilist.SetSigTrueAction(joinMap.PrivacyOn.JoinNumber, PositionPrivacy);
-            trilist.SetSigTrueAction(joinMap.PrivacyOff.JoinNumber, () => PresetSelect(1));
+            trilist.SetSigTrueAction(joinMap.PowerOn.JoinNumber, PowerOn);
+            trilist.SetSigTrueAction(joinMap.PowerOff.JoinNumber, PowerOff);
+            trilist.SetSigTrueAction(joinMap.PrivacyOn.JoinNumber, PrivacyOn);
+            trilist.SetSigTrueAction(joinMap.PrivacyOff.JoinNumber, PrivacyOff);
             trilist.SetSigTrueAction(joinMap.Home.JoinNumber, PositionHome);
 
             trilist.SetUShortSigAction(joinMap.PanSpeed.JoinNumber, panSpeed => PanSpeed = panSpeed);
@@ -474,8 +526,8 @@ namespace PanasonicCameraEpi
                 var recallJoin = joinMap.PresetRecall.JoinNumber + presetNumber - 1;
                 var saveJoin = joinMap.PresetSave.JoinNumber + presetNumber - 1;
 
-                trilist.SetSigHeldAction(recallJoin, 5000, () => PresetStore((int)presetNumber), () => PresetSelect((int)presetNumber));
-                trilist.SetSigTrueAction(saveJoin, () => PresetStore((int)presetNumber));
+                trilist.SetSigHeldAction(recallJoin, 5000, () => PresetStore((int)presetNumber, null), () => PresetSelect((int)presetNumber));
+                trilist.SetSigTrueAction(saveJoin, () => PresetStore((int)presetNumber, null));
                 trilist.SetStringSigAction(recallJoin, s => UpdatePresetName((int)presetNumber, s));
             }
 
@@ -499,8 +551,6 @@ namespace PanasonicCameraEpi
 
         #endregion
 
-        public RoutingPortCollection<RoutingOutputPort> OutputPorts { get; private set; }
-        
         public void Dispose()
         {
             _presetSavedTimer?.Dispose();
