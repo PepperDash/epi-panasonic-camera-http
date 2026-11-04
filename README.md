@@ -142,15 +142,41 @@ The join map below documents the commands implemented in this plugin.
 
 ## Mobile Control
 
-When an Essentials Mobile Control controller is present, the camera is exposed at `/device/{deviceKey}` through the standard core messengers, which are created automatically from the interfaces the camera implements:
+When an Essentials Mobile Control controller is present, the camera is exposed at `/device/{deviceKey}`. The core messengers are created from the interfaces the camera implements:
 
 | Interface | Messenger |
 | --------- | --------- |
 | `ICommunicationMonitor` | Communication monitor status |
-| `IHasCameraPtzControl` / `IHasCameraPresets` / `IHasCameraOff` | Camera control: pan, tilt, zoom, preset recall and store, camera status and capabilities |
+| `IHasCameraPtzControl` / `IHasCameraPresets` / `IHasCameraOff` | Camera control: pan, tilt, zoom, preset recall and store, camera status and capabilities (**extended by this plugin**, see below) |
 | `IHasPowerControl` / `IHasPowerControlWithFeedback` | Power commands and power state |
 
-Camera privacy (`IHasCameraPrivacy`) is available on the SIMPL bridge only; the core messengers do not yet expose it.
+### Camera privacy (plugin extension)
+
+The camera implements `IHasCameraPrivacy`, which Essentials 3.0.0-rc.20 does not support in Mobile Control. The plugin adds these to the camera control messenger:
+
+| Action / field | Description |
+| -------------- | ----------- |
+| `/privacyOn` | Sends the camera to its privacy position (`privacyCommand`, default `APC00000000`) |
+| `/privacyOff` | Returns the camera by recalling preset 1 |
+| `cameraPrivacySupported` | Added to the `CameraStateMessage` status (`/fullStatus`, `/cameraStatus`) |
+
+The camera cannot report where it is pointed, so there is no privacy-state feedback.
+
+### Known issue: the camera messenger is replaced, not extended in place
+
+**Issue.** Core has no messenger for `IHasCameraPrivacy`, and its `CameraControlMessenger` cannot be extended in place:
+
+- The Mobile Control registry creates `CameraControlMessenger` automatically for any device implementing `IHasCameraControls`. A plugin cannot add actions to that instance.
+- Registering a second messenger on the same `/device/{key}` path would work for privacy, but would leave two camera messengers, and core's status message would not carry the privacy flag.
+- The core status builder is private, so the extra field cannot be added by overriding a single method.
+
+**Resolution.** The plugin overrides `CreateMobileControlMessengers()` in `PanasonicCamera`:
+
+1. It calls `AddDefaultMessengersForDevice(this, interfaces)` with every implemented interface except `IHasCameraControls`, so core still creates the communication monitor and power messengers.
+2. It registers `PanasonicCameraControlMessenger`, a subclass of core's `CameraControlMessenger<IHasCameraControls>`, under the same key core would have used (`{key}-hasCamerasWithControls-{controllerKey}`). All of core's pan, tilt, zoom, preset and power actions are inherited unchanged.
+3. The subclass registers `/fullStatus` and `/cameraStatus` before calling the base, because the first handler registered for a path wins, and answers them with an extended `CameraStateMessage`. That message mirrors core's fields and adds `cameraPrivacySupported`. It keeps the type name `CameraStateMessage` because Mobile Control clients read the runtime type name as `messageType`.
+
+**Maintenance.** The status builder mirrors a private core method, so recheck it when raising the Essentials version. When core adds `IHasCameraPrivacy` support, delete `src/MobileControlMessenger/` and the `CreateMobileControlMessengers()` override.
 
 ## DEVJSON Commands
 

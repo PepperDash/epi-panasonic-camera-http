@@ -5,6 +5,7 @@ using System.Threading;
 using Crestron.SimplSharpPro.DeviceSupport;
 using Newtonsoft.Json.Linq;
 using PepperDash.Essentials.Core.Bridges;
+using PepperDash.Essentials.Core.DeviceTypeInterfaces;
 using PepperDash.Essentials.Core.Config;
 using PepperDash.Essentials.Core;
 using PepperDash.Essentials.Core.Devices;
@@ -148,6 +149,28 @@ namespace PepperDash.Essentials.Plugins
             // to (PowerIsOnFeedback, ...) exist.
             return base.CustomActivate();
         }        
+
+        /// <summary>
+        /// Registers the core messengers for every interface this camera implements, except the camera
+        /// control messenger, which is replaced by <see cref="PanasonicCameraControlMessenger"/> (core's plus privacy).
+        /// </summary>
+        protected override void CreateMobileControlMessengers()
+        {
+            var controller = DeviceManager.AllDevices.OfType<IMobileControl>().FirstOrDefault();
+            if (controller == null)
+            {
+                this.LogWarning("No IMobileControl controller found; Mobile Control messengers will not be registered");
+                return;
+            }
+
+            // The registry creates a messenger per interface in this list; leaving out IHasCameraControls
+            // skips core's CameraControlMessenger so ours does not double-handle every action.
+            var interfaces = GetType().GetInterfaces().Where(i => i != typeof(IHasCameraControls));
+            controller.AddDefaultMessengersForDevice(this, interfaces);
+
+            controller.AddDeviceMessenger(
+                new PanasonicCameraControlMessenger($"{Key}-hasCamerasWithControls-{controller.Key}", this, $"/device/{Key}"));
+        }
 
         private void HandleMonitorStatusChange(object sender, MonitorStatusChangeEventArgs e)
         {
