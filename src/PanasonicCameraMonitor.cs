@@ -1,4 +1,5 @@
-﻿using Crestron.SimplSharp;
+﻿using System.Threading;
+using Crestron.SimplSharp;
 using PepperDash.Core;
 using PepperDash.Essentials.Core;
 using PepperDash.Core.Logging;
@@ -7,7 +8,7 @@ namespace PanasonicCameraEpi
 {
     public class PanasonicHttpCameraMonitor : StatusMonitorBase
     {
-        private readonly CTimer _timer;
+        private readonly Timer _timer;
         private readonly HttpCommandQueue _httpQueue;
         private readonly long _pollInterval;
         private readonly string _pollString;
@@ -21,7 +22,7 @@ namespace PanasonicCameraEpi
             _pollInterval = props.PollInterval;
             _pollString = props.PollString;
 
-            _timer = new CTimer(TimerCallback, props.PollString, Timeout.Infinite, _pollInterval);
+            _timer = new Timer(TimerCallback, null, System.Threading.Timeout.Infinite, System.Threading.Timeout.Infinite);
 
             CrestronEnvironment.ProgramStatusEventHandler += eventType =>
                 {
@@ -50,13 +51,13 @@ namespace PanasonicCameraEpi
         public override void Start()
         {
             StartErrorTimers();
-            _timer.Reset(0, _pollInterval);
+            _timer.Change(0, _pollInterval);
         }
 
         public override void Stop()
         {
             
-            _timer.Stop();
+            _timer.Change(System.Threading.Timeout.Infinite, System.Threading.Timeout.Infinite);
             StopErrorTimers();
         }
 

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using Crestron.SimplSharpPro.DeviceSupport;
 using Newtonsoft.Json.Linq;
 using PepperDash.Essentials.Core.Bridges;
@@ -26,7 +27,8 @@ namespace PanasonicCameraEpi
         public List<CameraPreset> Presets { get; }
 
         public event EventHandler<EventArgs> PresetsListHasChanged;
-        private CTimer _presetSavedTimer;
+        private const int PresetSavedDurationMs = 5000;
+        private readonly Timer _presetSavedTimer;
 
         public bool IsPoweredOn { get; private set; }
         public Dictionary<uint, StringFeedback> PresetNamesFeedbacks { get; private set; }
@@ -58,6 +60,7 @@ namespace PanasonicCameraEpi
             : base(config)
         {
             OutputPorts = new RoutingPortCollection<RoutingOutputPort>();
+            _presetSavedTimer = new Timer(_ => PresetSavedBool = false, null, System.Threading.Timeout.Infinite, System.Threading.Timeout.Infinite);
 
 			var cameraConfig = PanasonicCameraPropsConfig.FromDeviceConfig(config);
 
@@ -312,9 +315,8 @@ namespace PanasonicCameraEpi
             _queue.EnqueueCmd(_cmd.PresetSaveCommand(preset));
             PresetSavedBool = true;
             
-            _presetSavedTimer?.Stop();
-            _presetSavedTimer?.Dispose();
-            _presetSavedTimer = new CTimer( (o) => PresetSavedBool = false, 5000);
+            // one-shot: restarts the 5 second window each time a preset is stored
+            _presetSavedTimer.Change(PresetSavedDurationMs, System.Threading.Timeout.Infinite);
         }
 
 		/// <summary>
@@ -501,9 +503,7 @@ namespace PanasonicCameraEpi
         
         public void Dispose()
         {
-            _presetSavedTimer?.Stop();
             _presetSavedTimer?.Dispose();
-            _presetSavedTimer = null;
         }
     }
 }
