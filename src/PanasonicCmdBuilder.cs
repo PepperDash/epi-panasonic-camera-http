@@ -109,6 +109,11 @@ namespace PepperDash.Essentials.Plugins
 			return cmd;
         }
 
+        /// <summary>
+        /// Request for MAC, serial number and firmware version. Not a #-wrapped aw_ptz command.
+        /// </summary>
+        public const string DeviceInfoCommand = "cgi-bin/getinfo?FILE=1";
+
         static string BuildCmd(string cmd)
         {
             var builder = new StringBuilder(CmdHeader);

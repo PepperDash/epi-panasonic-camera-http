@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Text.RegularExpressions;
 using PepperDash.Essentials.Core;
 using PepperDash.Core;
 using Serilog;
@@ -12,6 +13,7 @@ namespace PepperDash.Essentials.Plugins
 
         public event EventHandler CameraPoweredOn;
         public event EventHandler CameraPoweredOff;
+        public event EventHandler<ResponseDeviceInfoEventArgs> ResponseDeviceInfo;
 
         public PanasonicResponseHandler()
         {
@@ -28,11 +30,33 @@ namespace PepperDash.Essentials.Plugins
 
         void ProcessComs(string coms)
         {
+            // getinfo reply ("MAC=..", "SERIAL=..", "VERSION=.."); checked first so it is never mistaken for a power reply
+            if (coms.IndexOf("mac=", StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                ProcessDeviceInfo(coms);
+                return;
+            }
+
             if (coms.Contains("p1")) 
                 OnCameraPoweredOn();
 
             else if (coms.Contains("p0")) 
                 OnCameraPoweredOff();
+        }
+
+        void ProcessDeviceInfo(string data)
+        {
+            ResponseDeviceInfo?.Invoke(this, new ResponseDeviceInfoEventArgs
+            {
+                MacAddress = ExtractValue(data, "MAC"),
+                SerialNumber = ExtractValue(data, "SERIAL"),
+                FirmwareVersion = ExtractValue(data, "VERSION")
+            });
+        }
+
+        static string ExtractValue(string data, string key)
+        {
+            return Regex.Match(data, @"(?im)^\s*" + key + @"=(?<v>.*)$").Groups["v"].Value.Trim();
         }
 
         void OnCameraPoweredOn()

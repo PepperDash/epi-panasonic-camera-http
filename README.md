@@ -149,6 +149,7 @@ When an Essentials Mobile Control controller is present, the camera is exposed a
 | `ICommunicationMonitor` | Communication monitor status |
 | `IHasCameraPtzControl` / `IHasCameraPresets` / `IHasCameraOff` | Camera control: pan, tilt, zoom, preset recall and store, camera status and capabilities (**extended by this plugin**, see below) |
 | `IHasPowerControl` / `IHasPowerControlWithFeedback` | Power commands and power state |
+| `IDeviceInfoProvider` | Device info: host name, IP address, MAC address, serial number, firmware version (read from the camera with `cgi-bin/getinfo?FILE=1` after the first poll) |
 
 ### Camera privacy (plugin extension)
 

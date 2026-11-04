@@ -2,9 +2,11 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using Crestron.SimplSharpPro.DeviceSupport;
 using Newtonsoft.Json.Linq;
 using PepperDash.Essentials.Core.Bridges;
+using PepperDash.Essentials.Core.DeviceInfo;
 using PepperDash.Essentials.Core.DeviceTypeInterfaces;
 using PepperDash.Essentials.Core.Config;
 using PepperDash.Essentials.Core;
@@ -17,7 +19,7 @@ using PepperDash.Core.Logging;
 
 namespace PepperDash.Essentials.Plugins
 {
-    public class PanasonicCamera : CameraBase, IBridgeAdvanced, IHasCameraPtzControl, IHasCameraPresets, IHasCameraOff, IHasCameraPrivacy, IHasPowerControlWithFeedback, ICommunicationMonitor, IRoutingSource, IDisposable
+    public class PanasonicCamera : CameraBase, IBridgeAdvanced, IHasCameraPtzControl, IHasCameraPresets, IHasCameraOff, IHasCameraPrivacy, IHasPowerControlWithFeedback, ICommunicationMonitor, IRoutingSource, IDeviceInfoProvider, IDisposable
     {
         private readonly StatusMonitorBase _monitor;
         private readonly PanasonicCmdBuilder _cmd;
@@ -85,7 +87,13 @@ namespace PepperDash.Essentials.Plugins
             {
                 throw new NotImplementedException("Hostname is empty");
 			}
-            _monitor = new PanasonicHttpCameraMonitor(this, hostname, cameraConfig.CommunicationMonitor);
+            var monitor = new PanasonicHttpCameraMonitor(this, hostname, cameraConfig.CommunicationMonitor);
+            // poll replies ("p1"/"p0") are how the camera's power state is learned at startup
+            monitor.ResponseReceived += _responseHandler.HandleHttpResponse;
+            _monitor = monitor;
+
+            DeviceInfo = new DeviceInfo();
+            SetNetworkInfo(hostname);
             var pacing = cameraConfig.Pacing > 0 ? cameraConfig.Pacing : HttpCommandQueue.DefaultPacingMs;
             _queue = new HttpCommandQueue(hostname, this.Key, pacing);
             _queue.ResponseReceived += _responseHandler.HandleHttpResponse;
@@ -132,6 +140,7 @@ namespace PepperDash.Essentials.Plugins
                     IsPoweredOn = true;
                     CameraIsOffFeedback.FireUpdate();
                     PowerIsOnFeedback.FireUpdate();
+                    RequestDeviceInfoIfMissing();
                 };
 
             _responseHandler.CameraPoweredOff += (sender, args) =>
@@ -139,7 +148,10 @@ namespace PepperDash.Essentials.Plugins
                     IsPoweredOn = false;
                     CameraIsOffFeedback.FireUpdate();
                     PowerIsOnFeedback.FireUpdate();
+                    RequestDeviceInfoIfMissing();
                 };
+
+            _responseHandler.ResponseDeviceInfo += HandleDeviceInfoResponse;
 
             _monitor.StatusChange += HandleMonitorStatusChange;
             _monitor.Start();
@@ -568,6 +580,63 @@ namespace PepperDash.Essentials.Plugins
         }        
 
         #endregion Overrides of EssentialsBridgeableDevice
+
+        #region IDeviceInfoProvider Members
+
+        public DeviceInfo DeviceInfo { get; private set; }
+
+        public event DeviceInfoChangeHandler DeviceInfoChanged;
+
+        public void UpdateDeviceInfo()
+        {
+            _queue.EnqueueCmd(PanasonicCmdBuilder.DeviceInfoCommand);
+        }
+
+        private void RequestDeviceInfoIfMissing()
+        {
+            if (string.IsNullOrEmpty(DeviceInfo.FirmwareVersion))
+                UpdateDeviceInfo();
+        }
+
+        private void HandleDeviceInfoResponse(object sender, ResponseDeviceInfoEventArgs args)
+        {
+            DeviceInfo.MacAddress = args.MacAddress;
+            DeviceInfo.SerialNumber = args.SerialNumber;
+            DeviceInfo.FirmwareVersion = args.FirmwareVersion;
+            DeviceInfoChanged?.Invoke(this, new DeviceInfoEventArgs(DeviceInfo));
+        }
+
+        private void SetNetworkInfo(string address)
+        {
+            DeviceInfo.HostName = address;
+
+            System.Net.IPAddress ip;
+            if (System.Net.IPAddress.TryParse(address, out ip))
+            {
+                DeviceInfo.IpAddress = ip.ToString();
+                return;
+            }
+
+            // hostname in config: resolve off the calling thread, never block activation on DNS
+            Task.Run(() =>
+            {
+                try
+                {
+                    var resolved = System.Net.Dns.GetHostAddresses(address).FirstOrDefault();
+                    if (resolved == null)
+                        return;
+
+                    DeviceInfo.IpAddress = resolved.ToString();
+                    DeviceInfoChanged?.Invoke(this, new DeviceInfoEventArgs(DeviceInfo));
+                }
+                catch (Exception ex)
+                {
+                    this.LogWarning("Unable to resolve {hostname}: {message}", address, ex.Message);
+                }
+            });
+        }
+
+        #endregion
 
         #region ICommunicationMonitor Members
 

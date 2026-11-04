@@ -36,10 +36,16 @@ namespace PepperDash.Essentials.Plugins
                 };
         }
 
+        /// <summary>
+        /// Raised for every successful poll reply so the camera can learn power state (and device info) from it.
+        /// </summary>
+        public event System.EventHandler<HttpResponse> ResponseReceived;
+
         private void HandleHttpResponse(object sender, HttpResponse response)
         {
             if (response != null && response.StatusCode == 200)
             {
+                ResponseReceived?.Invoke(this, response);
                 SetOk();
             }
             else

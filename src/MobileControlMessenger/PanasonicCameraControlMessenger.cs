@@ -36,17 +36,16 @@ namespace PepperDash.Essentials.Plugins
             AddAction("/privacyOff", (id, content) => _camera.PrivacyOff());
         }
 
-        // Mirrors CameraControlMessenger.SendCameraFullMessageObject (private in core) for a camera without
-        // auto mode, and adds cameraPrivacySupported. Remove when core handles IHasCameraPrivacy.
+        // Mirrors CameraControlMessenger.SendCameraFullMessageObject (private in core) and adds cameraPrivacySupported. Remove when core handles IHasCameraPrivacy.
         private void SendCameraStatus(string id = null)
         {
             var message = new CameraStateMessage
             {
-                CameraManualSupported = true,
-                CameraAutoSupported = false,
-                CameraOffSupported = true,
-                CameraMode = _camera.PowerIsOnFeedback.BoolValue ? eCameraControlMode.Manual : eCameraControlMode.Off,
-                HasPresets = true,
+                CameraManualSupported = _camera is IHasCameraControls,
+                CameraAutoSupported = _camera is IHasCameraAutoMode,
+                CameraOffSupported = _camera is IHasCameraOff,
+                CameraMode = GetCameraMode(),
+                HasPresets = _camera is IHasCameraPresets,
                 Presets = _camera.Presets,
                 Capabilities = new PepperDash.Essentials.AppServer.Messengers.CameraCapabilities
                 {
@@ -55,11 +54,22 @@ namespace PepperDash.Essentials.Plugins
                     CanZoom = _camera.CanZoom,
                     CanFocus = _camera.CanFocus
                 },
-                IsFarEnd = false,
-                CameraPrivacySupported = true
+                IsFarEnd = _camera is IAmFarEndCamera,
+                CameraPrivacySupported = _camera is IHasCameraPrivacy
             };
 
             PostStatusMessage(message, id);
+        }
+
+        private eCameraControlMode GetCameraMode()
+        {
+            if (_camera is IHasCameraAutoMode auto && auto.CameraAutoModeIsOnFeedback.BoolValue)
+                return eCameraControlMode.Auto;
+
+            if (!_camera.PowerIsOnFeedback.BoolValue)
+                return eCameraControlMode.Off;
+
+            return eCameraControlMode.Manual;
         }
     }
 }
