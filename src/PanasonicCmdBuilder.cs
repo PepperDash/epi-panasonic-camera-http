@@ -3,7 +3,7 @@ using System.Text;
 using PepperDash.Core;
 using Serilog;
 
-namespace PanasonicCameraEpi
+namespace PepperDash.Essentials.Plugins
 {
     public class PanasonicCmdBuilder
     {

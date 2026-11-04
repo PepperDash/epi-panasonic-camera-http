@@ -4,7 +4,7 @@ using PepperDash.Core;
 using PepperDash.Essentials.Core;
 using PepperDash.Core.Logging;
 
-namespace PanasonicCameraEpi
+namespace PepperDash.Essentials.Plugins
 {
     public class PanasonicHttpCameraMonitor : StatusMonitorBase
     {

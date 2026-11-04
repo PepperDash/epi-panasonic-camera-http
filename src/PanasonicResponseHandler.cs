@@ -3,7 +3,7 @@ using PepperDash.Essentials.Core;
 using PepperDash.Core;
 using Serilog;
 
-namespace PanasonicCameraEpi
+namespace PepperDash.Essentials.Plugins
 {
     public class PanasonicResponseHandler
     {

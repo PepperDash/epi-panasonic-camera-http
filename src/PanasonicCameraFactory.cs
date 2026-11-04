@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using PepperDash.Essentials.Core;
 using PepperDash.Essentials.Core.Config;
 
-namespace PanasonicCameraEpi
+namespace PepperDash.Essentials.Plugins
 {
 	public class PanasonicCameraFactory : EssentialsPluginDeviceFactory<PanasonicCamera>
 	{

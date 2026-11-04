@@ -14,7 +14,7 @@ using Crestron.SimplSharp;
 using PepperDash.Core.Logging;
 
 
-namespace PanasonicCameraEpi
+namespace PepperDash.Essentials.Plugins
 {
     public class PanasonicCamera : CameraBase, IBridgeAdvanced, IHasCameraPtzControl, IHasCameraPresets, IHasCameraOff, IHasCameraPrivacy, IHasPowerControlWithFeedback, ICommunicationMonitor, IRoutingSource, IDisposable
     {

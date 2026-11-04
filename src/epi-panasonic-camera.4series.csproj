@@ -4,7 +4,7 @@
 	</PropertyGroup>
 	<PropertyGroup>
 		<TargetFramework>net8.0</TargetFramework>
-		<RootNamespace>PanasonicCameraEpi</RootNamespace>
+		<RootNamespace>PepperDash.Essentials.Plugins</RootNamespace>
 		<Deterministic>false</Deterministic>
 		<AssemblyTitle>EPI.Panasonic.Camera</AssemblyTitle>
 		<Company>PepperDash Technologies</Company>

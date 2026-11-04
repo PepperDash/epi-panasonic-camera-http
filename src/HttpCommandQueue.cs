@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using PepperDash.Core;
 using PepperDash.Core.Logging;
 
-namespace PanasonicCameraEpi
+namespace PepperDash.Essentials.Plugins
 {
     public class HttpResponse
     {

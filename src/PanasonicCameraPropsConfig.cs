@@ -3,7 +3,7 @@ using PepperDash.Essentials.Core;
 using PepperDash.Essentials.Core.Config;
 using Newtonsoft.Json;
 
-namespace PanasonicCameraEpi
+namespace PepperDash.Essentials.Plugins
 {
     public class PanasonicCameraPropsConfig
     {

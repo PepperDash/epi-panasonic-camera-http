@@ -1,4 +1,4 @@
-﻿namespace PanasonicCameraEpi
+﻿namespace PepperDash.Essentials.Plugins
 {
     public static class ScalingExtensions
     {
