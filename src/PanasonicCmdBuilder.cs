@@ -85,8 +85,8 @@ namespace PepperDash.Essentials.Plugins
             set
             {
                 _panSpeed = value <= 0 || value >= 50 ? 25 : value;
-                PanLeftCommand = BuildCmd(String.Format("P{0}", 50 - _panSpeed));
-                PanRightCommand = BuildCmd(String.Format("P{0}", _panSpeed + 50));
+                PanLeftCommand = BuildCmd(String.Format("P{0:D2}", 50 - _panSpeed));
+                PanRightCommand = BuildCmd(String.Format("P{0:D2}", _panSpeed + 50));
             }
         }
 
@@ -97,8 +97,8 @@ namespace PepperDash.Essentials.Plugins
             set
             {
                 _tiltSpeed = value <= 0 || value >= 50 ? 25 : value;
-                TiltDownCommand = BuildCmd(String.Format("T{0}", 50 - _tiltSpeed));
-                TiltUpCommand = BuildCmd(String.Format("T{0}", _tiltSpeed + 50));
+                TiltDownCommand = BuildCmd(String.Format("T{0:D2}", 50 - _tiltSpeed));
+                TiltUpCommand = BuildCmd(String.Format("T{0:D2}", _tiltSpeed + 50));
             }
         }
 
@@ -110,8 +110,8 @@ namespace PepperDash.Essentials.Plugins
             set
             {
                 _focusSpeed = value <= 0 || value >= 50 ? 25 : value;
-                FocusNearCommand = BuildCmd(String.Format("F{0}", 50 - _focusSpeed));
-                FocusFarCommand = BuildCmd(String.Format("F{0}", _focusSpeed + 50));
+                FocusNearCommand = BuildCmd(String.Format("F{0:D2}", 50 - _focusSpeed));
+                FocusFarCommand = BuildCmd(String.Format("F{0:D2}", _focusSpeed + 50));
             }
         }
 
@@ -122,8 +122,8 @@ namespace PepperDash.Essentials.Plugins
             set
             {
                 _zoomSpeed = value <= 0 || value >= 50 ? 25 : value;
-                ZoomOutCommand = BuildCmd(String.Format("Z{0}", 50 - _zoomSpeed));
-                ZoomInCommand = BuildCmd(String.Format("Z{0}", _zoomSpeed + 50));
+                ZoomOutCommand = BuildCmd(String.Format("Z{0:D2}", 50 - _zoomSpeed));
+                ZoomInCommand = BuildCmd(String.Format("Z{0:D2}", _zoomSpeed + 50));
             }
         }
 
