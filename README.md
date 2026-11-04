@@ -140,6 +140,18 @@ The join map below documents the commands implemented in this plugin.
 | Device communication | 50  | Device communication fb |
 
 
+## Mobile Control
+
+When an Essentials Mobile Control controller is present, the camera is exposed at `/device/{deviceKey}` through the standard core messengers, which are created automatically from the interfaces the camera implements:
+
+| Interface | Messenger |
+| --------- | --------- |
+| `ICommunicationMonitor` | Communication monitor status |
+| `IHasCameraPtzControl` / `IHasCameraPresets` / `IHasCameraOff` | Camera control: pan, tilt, zoom, preset recall and store, camera status and capabilities |
+| `IHasPowerControl` / `IHasPowerControlWithFeedback` | Power commands and power state |
+
+Camera privacy (`IHasCameraPrivacy`) is available on the SIMPL bridge only; the core messengers do not yet expose it.
+
 ## DEVJSON Commands
 
 When using DEVJSON commands update the program index `devjson:{programIndex}` and `deviceKey` values to match the testing environment.
