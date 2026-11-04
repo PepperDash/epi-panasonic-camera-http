@@ -13,7 +13,6 @@
 		<Version>1.0.0-local</Version>
 		<GenerateAssemblyInfo>true</GenerateAssemblyInfo>
 		<InformationalVersion>$(Version)</InformationalVersion>
-		<OutputPath>4Series\bin\$(Configuration)\</OutputPath>
 		<Authors>PepperDash Technologies</Authors>
 		<PackageId>PepperDash.Essentials.Plugins.Panasonic.Camera.Http</PackageId>
 		<AssemblyName>PepperDash.Essentials.Plugins.Panasonic.Camera.Http</AssemblyName>
