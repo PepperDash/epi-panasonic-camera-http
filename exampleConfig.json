@@ -14,7 +14,7 @@
         },
         "communicationMonitor": {
             "pollInterval": 10000,
-            "pollString": "O",
+            "pollString": "cgi-bin/aw_ptz?cmd=%23O&res=1",
             "timeToError": 60000,
             "timeToWarning": 120000
         },

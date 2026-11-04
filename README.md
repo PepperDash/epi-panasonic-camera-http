@@ -1,6 +1,8 @@
 ![PepperDash Logo](/images/logo_pdt_no_tagline_600.png)
 # Panasonic Camera Plugin
 
+Requires **PepperDash Essentials 3.0.0 or higher** (.NET 8, Crestron 4-Series processors). For Essentials 2.x use a 1.x release of this plugin.
+
 Controls the following cameras:
 
 1. AW-HE20
@@ -50,7 +52,7 @@ Controls the following cameras:
             }
         ],
         "panSpeed": 25,
-        "titlSpeed": 25,
+        "tiltSpeed": 25,
         "zoomSpeed": 25,
         "homeCommand": "",
         "privacyCommand": ""
