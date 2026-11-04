@@ -143,7 +143,10 @@ namespace PepperDash.Essentials.Plugins
             _monitor.StatusChange += HandleMonitorStatusChange;
             _monitor.Start();
 
-            return true;
+            // EssentialsDevice.CustomActivate creates the Mobile Control messengers for the interfaces this
+            // device implements. It must run after SetupFeedbacks so the feedbacks the messengers subscribe
+            // to (PowerIsOnFeedback, ...) exist.
+            return base.CustomActivate();
         }        
 
         private void HandleMonitorStatusChange(object sender, MonitorStatusChangeEventArgs e)
