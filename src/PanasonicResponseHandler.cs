@@ -15,6 +15,11 @@ namespace PepperDash.Essentials.Plugins
         public event EventHandler CameraPoweredOff;
         public event EventHandler<ResponseDeviceInfoEventArgs> ResponseDeviceInfo;
 
+        /// <summary>
+        /// Raised when the camera reports auto focus state ("d10" / "d11", the reply to #D1 and #D1[0|1]).
+        /// </summary>
+        public event EventHandler<bool> AutoFocusChanged;
+
         public PanasonicResponseHandler()
         {
 			ComsFb = new StringFeedback("ComsFeedback", () => _comsRx ?? string.Empty);
@@ -30,6 +35,13 @@ namespace PepperDash.Essentials.Plugins
 
         void ProcessComs(string coms)
         {
+            var autoFocus = Regex.Match(coms.Trim(), @"^d1(?<v>[01])$");
+            if (autoFocus.Success)
+            {
+                AutoFocusChanged?.Invoke(this, autoFocus.Groups["v"].Value == "1");
+                return;
+            }
+
             // getinfo reply ("MAC=..", "SERIAL=..", "VERSION=.."); checked first so it is never mistaken for a power reply
             if (coms.IndexOf("mac=", StringComparison.OrdinalIgnoreCase) >= 0)
             {

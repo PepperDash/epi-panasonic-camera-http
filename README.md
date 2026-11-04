@@ -54,6 +54,7 @@ Controls the following cameras:
         "panSpeed": 25,
         "tiltSpeed": 25,
         "zoomSpeed": 25,
+        "focusSpeed": 25,
         "pacing": 130,
         "homeCommand": "",
         "privacyCommand": ""
@@ -118,6 +119,11 @@ The join map below documents the commands implemented in this plugin.
 | Preset 16 save   | 46  |              |
 | Privacy on       | 48  |              |
 | Privacy off      | 49  |              |
+| Focus near       | 50  |              |
+| Focus far        | 51  |              |
+| One-touch auto focus | 52 |           |
+| Auto focus on    | 53  | Auto focus on fb  |
+| Auto focus off   | 54  | Auto focus off fb |
 ### Analogs
 
 | Input      | I/O | Output               |
@@ -125,6 +131,7 @@ The join map below documents the commands implemented in this plugin.
 | Pan speed  | 1   | Pan speed fb         |
 | Tilt speed | 2   | Tilt speed fb        |
 | Zoom speed | 3   | Zoom speed fb        |
+| Focus speed | 4  | Focus speed fb       |
 |            | 11  | Number of presets fb |
 
 ### Serials
@@ -149,33 +156,38 @@ When an Essentials Mobile Control controller is present, the camera is exposed a
 | `ICommunicationMonitor` | Communication monitor status |
 | `IHasCameraPtzControl` / `IHasCameraPresets` / `IHasCameraOff` | Camera control: pan, tilt, zoom, preset recall and store, camera status and capabilities (**extended by this plugin**, see below) |
 | `IHasPowerControl` / `IHasPowerControlWithFeedback` | Power commands and power state |
-| `IDeviceInfoProvider` | Device info: host name, IP address, MAC address, serial number, firmware version (read from the camera with `cgi-bin/getinfo?FILE=1` after the first poll) |
+| `IDeviceInfoProvider` | Device info: host name, IP address, MAC address, serial number, firmware version (read from the camera with `cgi-bin/getinfo?FILE=1` after the first poll; this command is not in the interface specification and has not been verified on hardware) |
 
-### Camera privacy (plugin extension)
+### Privacy and focus (plugin extensions)
 
-The camera implements `IHasCameraPrivacy`, which Essentials 3.0.0-rc.20 does not support in Mobile Control. The plugin adds these to the camera control messenger:
+The camera implements `IHasCameraPrivacy`, `IHasCameraFocusControl` and `IHasAutoFocusMode`, which Essentials 3.0.0-rc.20 does not support in Mobile Control. The plugin adds these to the camera control messenger:
 
 | Action / field | Description |
 | -------------- | ----------- |
 | `/privacyOn` | Sends the camera to its privacy position (`privacyCommand`, default `APC00000000`) |
 | `/privacyOff` | Returns the camera by recalling preset 1 |
-| `cameraPrivacySupported` | Added to the `CameraStateMessage` status (`/fullStatus`, `/cameraStatus`) |
+| `/cameraFocusNear`, `/cameraFocusFar` | Press-and-hold focus (same payload as core's `/cameraUp`, `/cameraZoomIn`, ...) |
+| `/cameraAutoFocus` | One-touch auto focus |
+| `/cameraFocusModeAuto`, `/cameraFocusModeManual`, `/cameraFocusModeToggle` | Auto focus mode on, off, toggle |
+| `cameraPrivacySupported`, `cameraAutoFocusOn` | Added to the `CameraStateMessage` status (`/fullStatus`, `/cameraStatus`); `cameraAutoFocusOn` is also pushed when it changes. `capabilities.canFocus` is true |
 
 The camera cannot report where it is pointed, so there is no privacy-state feedback.
 
+Manual focus is ignored by the camera while auto focus is on (it replies `ER3`), and the focus speed is set with `focusSpeed` (1-49, default 25). The Mobile Control React app core (`useCameraBase`) does not yet send focus actions, so a UI needs to add them.
+
 ### Known issue: the camera messenger is replaced, not extended in place
 
-**Issue.** Core has no messenger for `IHasCameraPrivacy`, and its `CameraControlMessenger` cannot be extended in place:
+**Issue.** Core has no messenger for `IHasCameraPrivacy` or focus, and its `CameraControlMessenger` cannot be extended in place:
 
 - The Mobile Control registry creates `CameraControlMessenger` automatically for any device implementing `IHasCameraControls`. A plugin cannot add actions to that instance.
-- Registering a second messenger on the same `/device/{key}` path would work for privacy, but would leave two camera messengers, and core's status message would not carry the privacy flag.
+- Registering a second messenger on the same `/device/{key}` path would work for these actions, but would leave two camera messengers, and core's status message would not carry the new fields.
 - The core status builder is private, so the extra field cannot be added by overriding a single method.
 
 **Resolution.** The plugin overrides `CreateMobileControlMessengers()` in `PanasonicCamera`:
 
 1. It calls `AddDefaultMessengersForDevice(this, interfaces)` with every implemented interface except `IHasCameraControls`, so core still creates the communication monitor and power messengers.
 2. It registers `PanasonicCameraControlMessenger`, a subclass of core's `CameraControlMessenger<IHasCameraControls>`, under the same key core would have used (`{key}-hasCamerasWithControls-{controllerKey}`). All of core's pan, tilt, zoom, preset and power actions are inherited unchanged.
-3. The subclass registers `/fullStatus` and `/cameraStatus` before calling the base, because the first handler registered for a path wins, and answers them with an extended `CameraStateMessage`. That message mirrors core's fields and adds `cameraPrivacySupported`. It keeps the type name `CameraStateMessage` because Mobile Control clients read the runtime type name as `messageType`.
+3. The subclass registers `/fullStatus` and `/cameraStatus` before calling the base, because the first handler registered for a path wins, and answers them with an extended `CameraStateMessage`. That message mirrors core's fields and adds `cameraPrivacySupported` and `cameraAutoFocusOn`. It keeps the type name `CameraStateMessage` because Mobile Control clients read the runtime type name as `messageType`.
 
 **Maintenance.** The status builder mirrors a private core method, so recheck it when raising the Essentials version. When core adds `IHasCameraPrivacy` support, delete `src/MobileControlMessenger/` and the `CreateMobileControlMessengers()` override.
 
@@ -198,6 +210,13 @@ devjson:1 {"deviceKey":"camera-1", "methodName":"TiltStop", "params":[]}
 devjson:1 {"deviceKey":"camera-1", "methodName":"ZoomIn", "params":[]}
 devjson:1 {"deviceKey":"camera-1", "methodName":"ZoomOut", "params":[]}
 devjson:1 {"deviceKey":"camera-1", "methodName":"ZoomStop", "params":[]}
+
+devjson:1 {"deviceKey":"camera-1", "methodName":"FocusNear", "params":[]}
+devjson:1 {"deviceKey":"camera-1", "methodName":"FocusFar", "params":[]}
+devjson:1 {"deviceKey":"camera-1", "methodName":"FocusStop", "params":[]}
+devjson:1 {"deviceKey":"camera-1", "methodName":"TriggerAutoFocus", "params":[]}
+devjson:1 {"deviceKey":"camera-1", "methodName":"SetFocusModeAuto", "params":[]}
+devjson:1 {"deviceKey":"camera-1", "methodName":"SetFocusModeManual", "params":[]}
 
 devjson:1 {"deviceKey":"camera-1", "methodName":"PositionHome", "params":[]}
 devjson:1 {"deviceKey":"camera-1", "methodName":"PrivacyOn", "params":[]}

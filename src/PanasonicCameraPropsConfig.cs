@@ -29,6 +29,7 @@ namespace PepperDash.Essentials.Plugins
         public int PanSpeed { get; set; }
         public int ZoomSpeed { get; set; }
         public int TiltSpeed { get; set; }
+        public int FocusSpeed { get; set; }
         public string HomeCommand { get; set; }
         public string PrivacyCommand { get; set; }
 

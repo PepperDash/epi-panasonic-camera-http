@@ -10,6 +10,9 @@ namespace PepperDash.Essentials.Plugins
         private const string CmdHeader = "cgi-bin/aw_ptz?cmd=%23";
         private const string CmdSuffix = "&res=1";
 
+        // One-touch AF is an aw_cam command (spec 3.2.1.1), not aw_ptz
+        private const string OneTouchAutoFocus = "cgi-bin/aw_cam?cmd=OSE:69:1&res=1";
+
         public string PanStopCommand { get; private set; }
         public string TiltStopCommand { get; private set; }
         public string ZoomStopCommand { get; private set; }
@@ -25,6 +28,14 @@ namespace PepperDash.Essentials.Plugins
         public string TiltUpCommand { get; private set; }
         public string TiltDownCommand { get; private set; }
 
+        public string FocusStopCommand { get; private set; }
+        public string FocusNearCommand { get; private set; }
+        public string FocusFarCommand { get; private set; }
+        public string AutoFocusOnCommand { get; private set; }
+        public string AutoFocusOffCommand { get; private set; }
+        public string AutoFocusQueryCommand { get; private set; }
+        public string OneTouchAutoFocusCommand { get; private set; }
+
         public PanasonicCmdBuilder(int panSpeed, int zoomSpeed, int tiltSpeed)
         {
             PanStopCommand = BuildCmd("P50");
@@ -38,6 +49,7 @@ namespace PepperDash.Essentials.Plugins
             PanSpeed = panSpeed == 0 ? 25 : panSpeed;
             ZoomSpeed = zoomSpeed == 0 ? 25 : zoomSpeed;
             TiltSpeed = tiltSpeed == 0 ? 25 : tiltSpeed;
+            InitializeFocus();
         }
 
         public PanasonicCmdBuilder(int panSpeed, int zoomSpeed, int tiltSpeed, string homeCommand, string privacyCommand)
@@ -53,6 +65,17 @@ namespace PepperDash.Essentials.Plugins
             PanSpeed = panSpeed == 0 ? 25 : panSpeed;
             ZoomSpeed = zoomSpeed == 0 ? 25 : zoomSpeed;
             TiltSpeed = tiltSpeed == 0 ? 25 : tiltSpeed;
+            InitializeFocus();
+        }
+
+        private void InitializeFocus()
+        {
+            FocusStopCommand = BuildCmd("F50");
+            AutoFocusOnCommand = BuildCmd("D11");
+            AutoFocusOffCommand = BuildCmd("D10");
+            AutoFocusQueryCommand = BuildCmd("D1");
+            OneTouchAutoFocusCommand = OneTouchAutoFocus;
+            FocusSpeed = 25;
         }
 
         private int _panSpeed;
@@ -76,6 +99,19 @@ namespace PepperDash.Essentials.Plugins
                 _tiltSpeed = value <= 0 || value >= 50 ? 25 : value;
                 TiltDownCommand = BuildCmd(String.Format("T{0}", 50 - _tiltSpeed));
                 TiltUpCommand = BuildCmd(String.Format("T{0}", _tiltSpeed + 50));
+            }
+        }
+
+        // #F[Data]: 01-49 near (max to min speed), 50 stop, 51-99 far (min to max speed)
+        private int _focusSpeed;
+        public int FocusSpeed
+        {
+            get { return _focusSpeed; }
+            set
+            {
+                _focusSpeed = value <= 0 || value >= 50 ? 25 : value;
+                FocusNearCommand = BuildCmd(String.Format("F{0}", 50 - _focusSpeed));
+                FocusFarCommand = BuildCmd(String.Format("F{0}", _focusSpeed + 50));
             }
         }
 
@@ -112,6 +148,10 @@ namespace PepperDash.Essentials.Plugins
         /// <summary>
         /// Request for MAC, serial number and firmware version. Not a #-wrapped aw_ptz command.
         /// </summary>
+        /// <remarks>
+        /// Not in the HD Integrated Camera interface specification; carried over from the earlier DeviceInfo
+        /// work and not verified against a camera.
+        /// </remarks>
         public const string DeviceInfoCommand = "cgi-bin/getinfo?FILE=1";
 
         static string BuildCmd(string cmd)

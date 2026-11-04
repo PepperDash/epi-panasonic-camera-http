@@ -261,6 +261,91 @@ namespace PepperDash.Essentials.Plugins
                 JoinType = eJoinType.Digital
             });
 
+        /// <summary>
+        /// Camera focus near
+        /// </summary>
+        [JoinName("FocusNear")]
+        public JoinDataComplete FocusNear = new JoinDataComplete(
+            new JoinData
+            {
+                JoinNumber = 50,
+                JoinSpan = 1
+            },
+            new JoinMetadata
+            {
+                Description = "Camera focus near",
+                JoinCapabilities = eJoinCapabilities.FromSIMPL,
+                JoinType = eJoinType.Digital
+            });
+
+        /// <summary>
+        /// Camera focus far
+        /// </summary>
+        [JoinName("FocusFar")]
+        public JoinDataComplete FocusFar = new JoinDataComplete(
+            new JoinData
+            {
+                JoinNumber = 51,
+                JoinSpan = 1
+            },
+            new JoinMetadata
+            {
+                Description = "Camera focus far",
+                JoinCapabilities = eJoinCapabilities.FromSIMPL,
+                JoinType = eJoinType.Digital
+            });
+
+        /// <summary>
+        /// Camera one-touch auto focus
+        /// </summary>
+        [JoinName("AutoFocusTrigger")]
+        public JoinDataComplete AutoFocusTrigger = new JoinDataComplete(
+            new JoinData
+            {
+                JoinNumber = 52,
+                JoinSpan = 1
+            },
+            new JoinMetadata
+            {
+                Description = "Camera one-touch auto focus",
+                JoinCapabilities = eJoinCapabilities.FromSIMPL,
+                JoinType = eJoinType.Digital
+            });
+
+        /// <summary>
+        /// Camera auto focus on
+        /// </summary>
+        [JoinName("AutoFocusOn")]
+        public JoinDataComplete AutoFocusOn = new JoinDataComplete(
+            new JoinData
+            {
+                JoinNumber = 53,
+                JoinSpan = 1
+            },
+            new JoinMetadata
+            {
+                Description = "Camera auto focus on",
+                JoinCapabilities = eJoinCapabilities.ToFromSIMPL,
+                JoinType = eJoinType.Digital
+            });
+
+        /// <summary>
+        /// Camera auto focus off
+        /// </summary>
+        [JoinName("AutoFocusOff")]
+        public JoinDataComplete AutoFocusOff = new JoinDataComplete(
+            new JoinData
+            {
+                JoinNumber = 54,
+                JoinSpan = 1
+            },
+            new JoinMetadata
+            {
+                Description = "Camera auto focus off",
+                JoinCapabilities = eJoinCapabilities.ToFromSIMPL,
+                JoinType = eJoinType.Digital
+            });
+
 
         #endregion
 
@@ -314,6 +399,23 @@ namespace PepperDash.Essentials.Plugins
             new JoinMetadata
             {
                 Description = "Camera zoom speed",
+                JoinCapabilities = eJoinCapabilities.ToFromSIMPL,
+                JoinType = eJoinType.Analog
+            });
+
+        /// <summary>
+        /// Camera focus speed
+        /// </summary>
+        [JoinName("FocusSpeed")]
+        public JoinDataComplete FocusSpeed = new JoinDataComplete(
+            new JoinData
+            {
+                JoinNumber = 4,
+                JoinSpan = 1
+            },
+            new JoinMetadata
+            {
+                Description = "Camera focus speed",
                 JoinCapabilities = eJoinCapabilities.ToFromSIMPL,
                 JoinType = eJoinType.Analog
             });

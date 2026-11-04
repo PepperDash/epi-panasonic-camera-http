@@ -1,4 +1,5 @@
-﻿using PepperDash.Core;
+﻿using Newtonsoft.Json.Linq;
+using PepperDash.Core;
 using PepperDash.Essentials.AppServer.Messengers;
 using PepperDash.Essentials.Core;
 using PepperDash.Essentials.Devices.Common.Cameras;
@@ -6,11 +7,12 @@ using PepperDash.Essentials.Devices.Common.Cameras;
 namespace PepperDash.Essentials.Plugins
 {
     /// <summary>
-    /// Core's <see cref="CameraControlMessenger{T}"/> (pan/tilt/zoom, presets, power) extended with camera privacy.
+    /// Core's <see cref="CameraControlMessenger{T}"/> (pan/tilt/zoom, presets, power) extended with camera privacy and focus.
     /// </summary>
     /// <remarks>
-    /// Essentials 3.0.0-rc.20 has no Mobile Control support for <see cref="IHasCameraPrivacy"/>. This subclass adds
-    /// <c>/privacyOn</c>, <c>/privacyOff</c> and a <c>cameraPrivacySupported</c> status field. See the README
+    /// Essentials 3.0.0-rc.20 has no Mobile Control support for <see cref="IHasCameraPrivacy"/>,
+    /// <see cref="IHasCameraFocusControl"/> or <see cref="IHasAutoFocusMode"/>. This subclass adds <c>/privacyOn</c>,
+    /// <c>/privacyOff</c>, the focus actions and the matching status fields. See the README
     /// ("Mobile Control") for why it replaces the default camera messenger instead of sitting beside it.
     /// </remarks>
     public class PanasonicCameraControlMessenger : CameraControlMessenger<IHasCameraControls>
@@ -34,6 +36,28 @@ namespace PepperDash.Essentials.Plugins
 
             AddAction("/privacyOn", (id, content) => _camera.PrivacyOn());
             AddAction("/privacyOff", (id, content) => _camera.PrivacyOff());
+
+            // Press and hold, same payload and naming style as core's /cameraUp, /cameraZoomIn, ...
+            AddAction("/cameraFocusNear", (id, content) =>
+                PressAndHoldHandler.HandlePressAndHold(DeviceKey, "/cameraFocusNear", content, held =>
+                {
+                    if (held) _camera.FocusNear();
+                    else _camera.FocusStop();
+                }));
+            AddAction("/cameraFocusFar", (id, content) =>
+                PressAndHoldHandler.HandlePressAndHold(DeviceKey, "/cameraFocusFar", content, held =>
+                {
+                    if (held) _camera.FocusFar();
+                    else _camera.FocusStop();
+                }));
+
+            AddAction("/cameraAutoFocus", (id, content) => _camera.TriggerAutoFocus());
+            AddAction("/cameraFocusModeAuto", (id, content) => _camera.SetFocusModeAuto());
+            AddAction("/cameraFocusModeManual", (id, content) => _camera.SetFocusModeManual());
+            AddAction("/cameraFocusModeToggle", (id, content) => _camera.ToggleFocusMode());
+
+            _camera.AutoFocusIsOnFeedback.OutputChange += (sender, args) =>
+                PostStatusMessage(JToken.FromObject(new { cameraAutoFocusOn = args.BoolValue }));
         }
 
         // Mirrors CameraControlMessenger.SendCameraFullMessageObject (private in core) and adds cameraPrivacySupported. Remove when core handles IHasCameraPrivacy.
@@ -55,7 +79,8 @@ namespace PepperDash.Essentials.Plugins
                     CanFocus = _camera.CanFocus
                 },
                 IsFarEnd = _camera is IAmFarEndCamera,
-                CameraPrivacySupported = _camera is IHasCameraPrivacy
+                CameraPrivacySupported = _camera is IHasCameraPrivacy,
+                CameraAutoFocusOn = _camera is IHasAutoFocusMode ? (bool?)_camera.AutoFocusIsOnFeedback.BoolValue : null
             };
 
             PostStatusMessage(message, id);

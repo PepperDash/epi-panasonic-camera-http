@@ -19,7 +19,7 @@ using PepperDash.Core.Logging;
 
 namespace PepperDash.Essentials.Plugins
 {
-    public class PanasonicCamera : CameraBase, IBridgeAdvanced, IHasCameraPtzControl, IHasCameraPresets, IHasCameraOff, IHasCameraPrivacy, IHasPowerControlWithFeedback, ICommunicationMonitor, IRoutingSource, IDeviceInfoProvider, IDisposable
+    public class PanasonicCamera : CameraBase, IBridgeAdvanced, IHasCameraPtzControl, IHasCameraFocusControl, IHasAutoFocusMode, IHasCameraPresets, IHasCameraOff, IHasCameraPrivacy, IHasPowerControlWithFeedback, ICommunicationMonitor, IRoutingSource, IDeviceInfoProvider, IDisposable
     {
         private readonly StatusMonitorBase _monitor;
         private readonly PanasonicCmdBuilder _cmd;
@@ -44,6 +44,11 @@ namespace PepperDash.Essentials.Plugins
         public IntFeedback PanSpeedFeedback { get; private set; }
         public IntFeedback ZoomSpeedFeedback { get; private set; }
         public IntFeedback TiltSpeedFeedback { get; private set; }
+        public IntFeedback FocusSpeedFeedback { get; private set; }
+        public BoolFeedback AutoFocusIsOnFeedback { get; private set; }
+
+        // last auto focus state reported by the camera (reply to #D1 / #D1[0|1]); false until the camera reports
+        private volatile bool _autoFocusOn;
         public BoolFeedback PresetSavedFeedback { get; private set; }
         public bool PresetSavedBool
         {
@@ -65,7 +70,7 @@ namespace PepperDash.Essentials.Plugins
             : base(config)
         {
             // OutputPorts is created by CameraBase
-            Capabilities = eCameraCapabilities.Pan | eCameraCapabilities.Tilt | eCameraCapabilities.Zoom;
+            Capabilities = eCameraCapabilities.Pan | eCameraCapabilities.Tilt | eCameraCapabilities.Zoom | eCameraCapabilities.Focus;
             _presetSavedTimer = new Timer(_ => PresetSavedBool = false, null, System.Threading.Timeout.Infinite, System.Threading.Timeout.Infinite);
 
 			var cameraConfig = PanasonicCameraPropsConfig.FromDeviceConfig(config);
@@ -131,6 +136,14 @@ namespace PepperDash.Essentials.Plugins
 
                 PanSpeed = cameraConfig.PanSpeed;
             });
+
+            AddPostActivationAction(() =>
+            {
+                if (cameraConfig.FocusSpeed == 0)
+                    return;
+
+                FocusSpeed = cameraConfig.FocusSpeed;
+            });
         }
         protected override bool CustomActivate()
         {
@@ -152,9 +165,17 @@ namespace PepperDash.Essentials.Plugins
                 };
 
             _responseHandler.ResponseDeviceInfo += HandleDeviceInfoResponse;
+            _responseHandler.AutoFocusChanged += (sender, isOn) =>
+            {
+                _autoFocusOn = isOn;
+                AutoFocusIsOnFeedback.FireUpdate();
+            };
 
             _monitor.StatusChange += HandleMonitorStatusChange;
             _monitor.Start();
+
+            // learn the camera's auto focus state; the reply ("d10"/"d11") updates AutoFocusIsOnFeedback
+            _queue.EnqueueCmd(_cmd.AutoFocusQueryCommand);
 
             // EssentialsDevice.CustomActivate creates the Mobile Control messengers for the interfaces this
             // device implements. It must run after SetupFeedbacks so the feedbacks the messengers subscribe
@@ -209,11 +230,15 @@ namespace PepperDash.Essentials.Plugins
             PanSpeedFeedback = new IntFeedback("PanSpeedFeedback", () => PanSpeed);
             TiltSpeedFeedback = new IntFeedback("TiltSpeedFeedback", () => TiltSpeed);
             ZoomSpeedFeedback = new IntFeedback("ZoomSpeedFeedback", () => ZoomSpeed);
+            FocusSpeedFeedback = new IntFeedback("FocusSpeedFeedback", () => FocusSpeed);
+            AutoFocusIsOnFeedback = new BoolFeedback("AutoFocusIsOnFeedback", () => _autoFocusOn);
             PresetSavedFeedback = new BoolFeedback("PresetSavedFeedback", () => PresetSavedBool); 
 
             PanSpeedFeedback.FireUpdate();
             TiltSpeedFeedback.FireUpdate();
             ZoomSpeedFeedback.FireUpdate();
+            FocusSpeedFeedback.FireUpdate();
+            AutoFocusIsOnFeedback.FireUpdate();
 
             PresetNamesFeedbacks = _presets.ToDictionary(x => x.Key, x => new StringFeedback($"PresetName{x.Key}", () => x.Value.Name));
 
@@ -235,6 +260,16 @@ namespace PepperDash.Essentials.Plugins
                 .OrderBy(p => p.Id)
                 .Select(p => new CameraPreset(p.Id, p.Name ?? string.Empty, !string.IsNullOrEmpty(p.Name), true))
                 .ToList();
+        }
+
+        public int FocusSpeed
+        {
+            get { return _cmd.FocusSpeed; }
+            set
+            {
+                _cmd.FocusSpeed = value;
+                FocusSpeedFeedback.FireUpdate();
+            }
         }
 
         public int PanSpeed
@@ -382,6 +417,56 @@ namespace PepperDash.Essentials.Plugins
 
         #endregion
 
+        #region IHasCameraFocusControl Members
+
+        public void FocusNear()
+        {
+            _queue.EnqueueCmd(_cmd.FocusNearCommand);
+        }
+
+        public void FocusFar()
+        {
+            _queue.EnqueueCmd(_cmd.FocusFarCommand);
+        }
+
+        public void FocusStop()
+        {
+            _queue.EnqueueCmd(_cmd.FocusStopCommand);
+        }
+
+        /// <summary>
+        /// One-touch auto focus (aw_cam OSE:69:1).
+        /// </summary>
+        public void TriggerAutoFocus()
+        {
+            _queue.EnqueueCmd(_cmd.OneTouchAutoFocusCommand);
+        }
+
+        #endregion
+
+        #region IHasAutoFocusMode Members
+
+        // The camera ignores manual focus speed commands while auto focus is on (ER3), so the mode matters to callers.
+        public void SetFocusModeAuto()
+        {
+            _queue.EnqueueCmd(_cmd.AutoFocusOnCommand);
+        }
+
+        public void SetFocusModeManual()
+        {
+            _queue.EnqueueCmd(_cmd.AutoFocusOffCommand);
+        }
+
+        public void ToggleFocusMode()
+        {
+            if (_autoFocusOn)
+                SetFocusModeManual();
+            else
+                SetFocusModeAuto();
+        }
+
+        #endregion
+
         public void SendCustomCommand(string cmd)
         {
             _queue.EnqueueCmd(PanasonicCmdBuilder.BuildCustomCommand(cmd));
@@ -505,6 +590,9 @@ namespace PepperDash.Essentials.Plugins
             PanSpeedFeedback.LinkInputSig(trilist.UShortInput[joinMap.PanSpeed.JoinNumber]);
             TiltSpeedFeedback.LinkInputSig(trilist.UShortInput[joinMap.TiltSpeed.JoinNumber]);
             ZoomSpeedFeedback.LinkInputSig(trilist.UShortInput[joinMap.ZoomSpeed.JoinNumber]);
+            FocusSpeedFeedback.LinkInputSig(trilist.UShortInput[joinMap.FocusSpeed.JoinNumber]);
+            AutoFocusIsOnFeedback.LinkInputSig(trilist.BooleanInput[joinMap.AutoFocusOn.JoinNumber]);
+            AutoFocusIsOnFeedback.LinkComplementInputSig(trilist.BooleanInput[joinMap.AutoFocusOff.JoinNumber]);
 
             trilist.SetBoolSigAction(joinMap.PanLeft.JoinNumber, sig =>
             {
@@ -551,6 +639,23 @@ namespace PepperDash.Essentials.Plugins
             trilist.SetUShortSigAction(joinMap.PanSpeed.JoinNumber, panSpeed => PanSpeed = panSpeed);
             trilist.SetUShortSigAction(joinMap.TiltSpeed.JoinNumber, tiltSpeed => TiltSpeed = tiltSpeed);
             trilist.SetUShortSigAction(joinMap.ZoomSpeed.JoinNumber, zoomSpeed => ZoomSpeed = zoomSpeed);
+            trilist.SetUShortSigAction(joinMap.FocusSpeed.JoinNumber, focusSpeed => FocusSpeed = focusSpeed);
+
+            trilist.SetBoolSigAction(joinMap.FocusNear.JoinNumber, sig =>
+            {
+                if (sig) FocusNear();
+                else FocusStop();
+            });
+
+            trilist.SetBoolSigAction(joinMap.FocusFar.JoinNumber, sig =>
+            {
+                if (sig) FocusFar();
+                else FocusStop();
+            });
+
+            trilist.SetSigTrueAction(joinMap.AutoFocusTrigger.JoinNumber, TriggerAutoFocus);
+            trilist.SetSigTrueAction(joinMap.AutoFocusOn.JoinNumber, SetFocusModeAuto);
+            trilist.SetSigTrueAction(joinMap.AutoFocusOff.JoinNumber, SetFocusModeManual);
 
             trilist.SetStringSigAction(joinMap.IpAddress.JoinNumber, SetIpAddress);
 
