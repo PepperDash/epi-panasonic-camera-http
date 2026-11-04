@@ -198,11 +198,19 @@ namespace PepperDash.Essentials.Plugins
 
             // The registry creates a messenger per interface in this list; leaving out IHasCameraControls
             // skips core's CameraControlMessenger so ours does not double-handle every action.
-            var interfaces = GetType().GetInterfaces().Where(i => i != typeof(IHasCameraControls));
-            controller.AddDefaultMessengersForDevice(this, interfaces);
+            controller.AddDefaultMessengersForDevice(this, GetDefaultMessengerInterfaces(GetType()));
 
             controller.AddDeviceMessenger(
                 new PanasonicCameraControlMessenger($"{Key}-hasCamerasWithControls-{controller.Key}", this, $"/device/{Key}"));
+        }
+
+        /// <summary>
+        /// Interfaces passed to the core registry: everything the device implements except
+        /// <see cref="IHasCameraControls"/>, whose core messenger is replaced by <see cref="PanasonicCameraControlMessenger"/>.
+        /// </summary>
+        internal static IEnumerable<Type> GetDefaultMessengerInterfaces(Type deviceType)
+        {
+            return deviceType.GetInterfaces().Where(i => i != typeof(IHasCameraControls));
         }
 
         private void HandleMonitorStatusChange(object sender, MonitorStatusChangeEventArgs e)

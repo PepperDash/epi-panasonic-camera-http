@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <!-- The plugin targets net8.0; let the tests run on a newer installed runtime (CI image, dev machines) -->
+    <RollForward>Major</RollForward>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <RootNamespace>PepperDash.Essentials.Plugins.Tests</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="System.Reflection.MetadataLoadContext" Version="9.0.4" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
+    <!-- The plugin excludes the Essentials runtime assets (the processor provides them); the behaviour tests need them -->
+    <PackageReference Include="PepperDashEssentials" Version="3.0.0-rc.20" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Builds the plugin before the tests run so the reflection tests never read a stale DLL -->
+    <ProjectReference Include="..\src\epi-panasonic-camera.4series.csproj" />
+  </ItemGroup>
+</Project>

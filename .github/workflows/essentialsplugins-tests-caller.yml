@@ -1,0 +1,10 @@
+name: Test Essentials Plugin
+
+on:
+  push:
+    branches:
+      - '**'
+
+jobs:
+  test:
+    uses: PepperDash/workflow-templates/.github/workflows/essentialsplugins-run-tests.yml@main

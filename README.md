@@ -191,6 +191,22 @@ Manual focus is ignored by the camera while auto focus is on (it replies `ER3`),
 
 **Maintenance.** The status builder mirrors a private core method, so recheck it when raising the Essentials version. When core adds `IHasCameraPrivacy` support, delete `src/MobileControlMessenger/` and the `CreateMobileControlMessengers()` override.
 
+## Tests
+
+```
+dotnet test tests/PepperDash.Essentials.Plugins.Panasonic.Camera.Http.Tests.csproj
+```
+
+The suite runs without a processor or a camera:
+
+- **Plugin loading** (MetadataLoadContext): the assembly loads, the package id matches the repo-derived name CI enforces, the factory is discoverable, and its `TypeNames` and `MinimumEssentialsFrameworkVersion` are valid.
+- **Config contract**: the config class matches `exampleConfig.json`, and real JSON deserializes.
+- **Commands and replies**: command strings are checked against the interface specification, and power, auto focus and device info replies are parsed.
+- **HTTP queue**: ordering and pacing are checked against a local HTTP listener.
+- **Mobile Control**: the interfaces the core messengers are created from, the replaced camera messenger's actions, and the `CameraStateMessage` wire format.
+
+`PanasonicCamera` itself needs a processor to construct, so its activation and the messenger registration against a live Mobile Control controller are not covered.
+
 ## DEVJSON Commands
 
 When using DEVJSON commands update the program index `devjson:{programIndex}` and `deviceKey` values to match the testing environment.

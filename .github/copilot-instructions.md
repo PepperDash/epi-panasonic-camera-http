@@ -4,6 +4,7 @@ PepperDash Essentials plugin for Panasonic PTZ cameras controlled over HTTP.
 
 - Targets **.NET 8** and **PepperDash Essentials 3.x** (Crestron 4-Series only).
 - Build: `dotnet build src/epi-panasonic-camera.4series.csproj`
+- Test: `dotnet test tests/PepperDash.Essentials.Plugins.Panasonic.Camera.Http.Tests.csproj` (no processor needed). Keep tests passing; add one for each new command string, reply, or messenger action.
 - Package id / assembly name is derived from the repo name by CI: `PepperDash.Essentials.Plugins.Panasonic.Camera.Http`. Do not rename it.
 - Logging uses Serilog via `PepperDash.Core.Logging` (`this.LogInformation(...)` with named placeholders). Do not use `Debug.Console` / `Debug.LogMessage`.
 - HTTP uses `System.Net.Http` through `HttpCommandQueue`. Do not reintroduce `HttpWebRequest` or Crestron HTTP clients.

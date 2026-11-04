@@ -29,6 +29,9 @@
 	  <None Remove="epi-panasonic-camera.projectinfo" />
 	</ItemGroup>
 	<ItemGroup>
+	  <InternalsVisibleTo Include="PepperDash.Essentials.Plugins.Panasonic.Camera.Http.Tests" />
+	</ItemGroup>
+	<ItemGroup>
 	  <PackageReference Include="PepperDashEssentials" Version="3.0.0-rc.20">
 	    <ExcludeAssets>runtime</ExcludeAssets>
 	  </PackageReference>
