@@ -21,6 +21,7 @@ namespace PanasonicCameraEpi
         private readonly PanasonicCmdBuilder _cmd;
         private readonly PanasonicResponseHandler _responseHandler;
         private readonly HttpCommandQueue _queue;
+        private readonly PanasonicHttpCameraMonitor _httpMonitor;
         private readonly Dictionary<uint, PanasonicCameraPreset> _presets;
 
         public List<CameraPreset> Presets { get; }
@@ -59,6 +60,8 @@ namespace PanasonicCameraEpi
         {
             OutputPorts = new RoutingPortCollection<RoutingOutputPort>();
 
+            Capabilities = eCameraCapabilities.Pan | eCameraCapabilities.Tilt | eCameraCapabilities.Zoom;
+
 			var cameraConfig = PanasonicCameraPropsConfig.FromDeviceConfig(config);
 
 			_responseHandler = new PanasonicResponseHandler();
@@ -78,8 +81,9 @@ namespace PanasonicCameraEpi
             {
                 throw new NotImplementedException("Hostname is empty");
 			}
-            _monitor = new PanasonicHttpCameraMonitor(this, hostname, cameraConfig.CommunicationMonitor);
-            _queue = new HttpCommandQueue(hostname, this.Key);
+            _httpMonitor = new PanasonicHttpCameraMonitor(this, hostname, cameraConfig.CommunicationMonitor);
+            _monitor = _httpMonitor;
+            _queue = new HttpCommandQueue(hostname, this.Key, cameraConfig.Pacing);
             _queue.ResponseReceived += _responseHandler.HandleHttpResponse;
 
             _cmd = new PanasonicCmdBuilder(12, 25, 12, cameraConfig.HomeCommand, cameraConfig.PrivacyCommand);
@@ -332,8 +336,8 @@ namespace PanasonicCameraEpi
 			    Config.Properties["control"]["tcpSshProperties"]["address"] = address;
 			    Debug.LogMessage(LogEventLevel.Debug, this, "{0}", Config.Properties.ToString());
 			    SetConfig(Config);
-			    // Update hostname in config - the monitor will use the new address
-			    // Note: With HttpClient approach, the monitor handles the hostname directly
+			    _queue.Hostname = address;
+			    _httpMonitor.Hostname = address;
 			}
 			catch (Exception e)
 			{
@@ -504,6 +508,9 @@ namespace PanasonicCameraEpi
             _presetSavedTimer?.Stop();
             _presetSavedTimer?.Dispose();
             _presetSavedTimer = null;
+
+            _queue.Dispose();
+            _httpMonitor.Dispose();
         }
     }
 }
