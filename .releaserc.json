@@ -24,8 +24,7 @@
     ]
   ],  
   "branches": [
-    { "name": "maintenance-1x", "range": "1.x", "channel": false },
-    "main",
+    "maintenance-1x",
     {
       "name": "replace-me-feature-branch",
       "prerelease": "replace-me-prerelease",
