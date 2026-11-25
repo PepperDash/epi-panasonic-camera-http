@@ -1,3 +1,5 @@
+name: Build Essentials 1.x Plugin
+
 on:
   push:
     branches:
