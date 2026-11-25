@@ -1,22 +1,24 @@
-﻿using Crestron.SimplSharp;
+﻿using System;
+using Crestron.SimplSharp;
 using PepperDash.Core;
 using PepperDash.Essentials.Core;
 using PepperDash.Core.Logging;
 
 namespace PanasonicCameraEpi
 {
-    public class PanasonicHttpCameraMonitor : StatusMonitorBase
+    public class PanasonicHttpCameraMonitor : StatusMonitorBase, IDisposable
     {
         private readonly CTimer _timer;
         private readonly HttpCommandQueue _httpQueue;
         private readonly long _pollInterval;
         private readonly string _pollString;
+        private bool _disposed;
 
         public PanasonicHttpCameraMonitor(IKeyed parent, string hostname,
             CommunicationMonitorConfig props)
             : base (parent, props.TimeToWarning, props.TimeToError)
         {
-            _httpQueue = new HttpCommandQueue(hostname, parent.Key + "-monitor");
+            _httpQueue = new HttpCommandQueue(hostname, parent.Key + "-monitor", 0);
             _httpQueue.ResponseReceived += HandleHttpResponse;
             _pollInterval = props.PollInterval;
             _pollString = props.PollString;
@@ -29,15 +31,33 @@ namespace PanasonicCameraEpi
                         return;
 
                     this.LogInformation("Program stopping, disposing of error timers...");
-                    Stop();
-                    _timer.Dispose();
-                    _httpQueue?.Dispose();
+                    Dispose();
                 };
+        }
+
+        /// <summary>
+        /// Host that status polls are sent to; may be changed while running.
+        /// </summary>
+        public string Hostname
+        {
+            get { return _httpQueue.Hostname; }
+            set { _httpQueue.Hostname = value; }
+        }
+
+        public void Dispose()
+        {
+            if (_disposed)
+                return;
+
+            _disposed = true;
+            Stop();
+            _timer.Dispose();
+            _httpQueue.Dispose();
         }
 
         private void HandleHttpResponse(object sender, HttpResponse response)
         {
-            if (response != null && response.StatusCode == 200)
+            if (response != null && response.StatusCode == (int)System.Net.HttpStatusCode.OK)
             {
                 SetOk();
             }
